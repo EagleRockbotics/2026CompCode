@@ -86,13 +86,8 @@ public class SwerveSubsystem extends SubsystemBase {
         () -> {
           ChassisSpeeds desiredSpeeds = new ChassisSpeeds(-this.input.getRawAxis(1), -this.input.getRawAxis(0),
               -this.input.getRawAxis(4));
-          this.swerveDrive.drive(desiredSpeeds);
-          swervePublisher.set(this.swerveDrive.getStates());
-          desiredPublisherFR.set(this.swerveDrive.kinematics
-              .toSwerveModuleStates(ChassisSpeeds.fromRobotRelativeSpeeds(desiredSpeeds, this.swerveDrive.getYaw())));
-          desiredPublisherRR.set(this.swerveDrive.kinematics.toSwerveModuleStates(desiredSpeeds));
-          gyroValue.set(this.swerveDrive.getYaw());
-        }).beforeStarting(() -> {
+          driveWrapper(desiredSpeeds);
+       }).beforeStarting(() -> {
           SwerveModule[] modules = swerveDrive.getModules();
           // for (SwerveModule m : modules) {
           // SparkMax m_Motor = (SparkMax) m.getAngleMotor().getMotor();
@@ -104,6 +99,18 @@ public class SwerveSubsystem extends SubsystemBase {
 
         });
 
+  }
+
+
+  private void driveWrapper (ChassisSpeeds speeds) {
+          this.swerveDrive.drive(speeds);
+          this.swerveDrive.updateOdometry();
+          swervePublisher.set(this.swerveDrive.getStates());
+          desiredPublisherFR.set(this.swerveDrive.kinematics
+              .toSwerveModuleStates(ChassisSpeeds.fromRobotRelativeSpeeds(speeds, this.swerveDrive.getYaw())));
+          desiredPublisherRR.set(this.swerveDrive.kinematics.toSwerveModuleStates(speeds));
+          gyroValue.set(this.swerveDrive.getYaw());
+ 
   }
 
   public Command updatedNT() {
@@ -127,13 +134,7 @@ public class SwerveSubsystem extends SubsystemBase {
         () -> {
           ChassisSpeeds desiredSpeeds = new ChassisSpeeds(this.input.getRawAxis(1), this.input.getRawAxis(0),
               -this.input.getRawAxis(4));
-          this.swerveDrive.drive(desiredSpeeds);
-          desiredPublisherFR.set(this.swerveDrive.kinematics
-              .toSwerveModuleStates(ChassisSpeeds.fromRobotRelativeSpeeds(desiredSpeeds, this.swerveDrive.getYaw())));
-          desiredPublisherRR.set(this.swerveDrive.kinematics.toSwerveModuleStates(desiredSpeeds));
-          gyroValue.set(this.swerveDrive.getYaw());
-          swervePublisher.set(this.swerveDrive.getStates());
-        }).beforeStarting(() -> {
+          driveWrapper(desiredSpeeds);
           SwerveModule[] modules = swerveDrive.getModules();
           // for (SwerveModule m : modules) {
           // SparkMax m_Motor = (SparkMax) m.getAngleMotor().getMotor();
