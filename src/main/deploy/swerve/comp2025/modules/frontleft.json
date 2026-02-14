@@ -15,9 +15,9 @@
     "canbus": "Swerve CAN"
   },
   "encoder": {
-    "type": "Swerve CAN",
+    "type": "cancoder",
     "id": 12,
-    "canbus": null
+    "canbus": "Swerve CAN"
   },
   "inverted": {
     "drive": true,
