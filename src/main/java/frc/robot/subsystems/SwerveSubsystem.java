@@ -4,12 +4,18 @@
 
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+
 import java.io.File;
+import java.lang.StackWalker.Option;
+import java.util.Optional;
 
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.revrobotics.spark.SparkMax;
 
 import choreo.trajectory.SwerveSample;
+import edu.wpi.first.math.Pair;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.LTVUnicycleController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -29,6 +35,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.Constants;
+import frc.robot.LimelightHelpers;
+import frc.robot.LimelightHelpers.PoseEstimate;
 import swervelib.SwerveDrive;
 import swervelib.SwerveModule;
 import swervelib.parser.SwerveParser;
@@ -110,8 +118,26 @@ public class SwerveSubsystem extends SubsystemBase {
               .toSwerveModuleStates(ChassisSpeeds.fromRobotRelativeSpeeds(speeds, this.swerveDrive.getYaw())));
           desiredPublisherRR.set(this.swerveDrive.kinematics.toSwerveModuleStates(speeds));
           gyroValue.set(this.swerveDrive.getYaw());
- 
+          try {
+            this.swerveDrive.setVisionMeasurementStdDevs(VecBuilder.fill(.7, .7, 9999999));
+            this.swerveDrive.addVisionMeasurement(limelightPose().get().getFirst(), limelightPose().get().getSecond());
+          } catch (Exception e) {
+
+          }
   }
+
+  public Optional<Pair<Pose2d, Double>> limelightPose () {
+
+    var yaw = swerveDrive.getYaw().getDegrees();
+
+    LimelightHelpers.SetRobotOrientation(Constants.kLimelightName, yaw, 0, 0, 0, 0, 0);
+    PoseEstimate estimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(Constants.kLimelightName);
+    if (swerveDrive.getGyro().getYawAngularVelocity().abs(DegreesPerSecond) > 360 || estimate.tagCount == 0) {
+      return Optional.empty();
+    }
+    return Optional.of(new Pair<Pose2d,Double>(estimate.pose, estimate.timestampSeconds));
+  }
+
 
   public Command updatedNT() {
     return run(() -> {

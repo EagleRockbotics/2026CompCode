@@ -19,6 +19,8 @@ import edu.wpi.first.math.controller.PIDController;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+  public static final String kLimelightName = "limelight-rock";
+
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
     public static final int kHelperControllerPort = 0;
