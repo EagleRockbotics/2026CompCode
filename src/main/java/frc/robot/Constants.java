@@ -9,7 +9,7 @@ import edu.wpi.first.math.controller.PIDController;
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
  * numerical or boolean
- * constants. This class should not be used for any other purpose. All constants
+ * constants. wow who would have thought? This class should not be used for any other purpose. All constants
  * should be declared
  * globally (i.e. public static). Do not put anything functional in this class.
  *
@@ -43,5 +43,17 @@ public final class Constants {
 
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
+  }
+
+  public static class ElevatorConstants {
+
+  }
+
+  public static class ShooterConstants {
+
+  }
+
+  public static class IntakeConstants {
+    public static final double kdt = 0.02;
   }
 }

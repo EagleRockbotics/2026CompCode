@@ -138,7 +138,7 @@ public class RobotContainer {
     // An example command will be run in autonomous
     return Autos.exampleAuto(m_exampleSubsystem);
   }
-
+  // this is where the robot goes vroom and brrr and stuff
   public Command getTeleopCommand() {
     return Commands.parallel(        m_drivetrain.applyRequest(() ->
                 drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier) // Drive forward with negative Y (forward)
@@ -147,6 +147,7 @@ public class RobotContainer {
             ));
   }
 
+  // this is so that we dont die
   public Command getTestCommand() {
     return Commands.parallel(null);
   }
