@@ -5,12 +5,12 @@
   },
   "absoluteEncoderOffset": 88.9452,
   "drive": {
-    "type": "talonfx",
+    "type": "talonfxs_neo",
     "id": 6,
     "canbus": "Swerve CAN"
   },
   "angle": {
-    "type": "talonfx",
+    "type": "talonfxs_neo",
     "id": 7,
     "canbus": "Swerve CAN"
   },
