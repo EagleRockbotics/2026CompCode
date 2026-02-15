@@ -42,4 +42,24 @@ public final class Constants {
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
   }
+  public static class ElevatorConstants {
+    public static final int kElevatorMotorID = -1;
+    public static final int kBottomServoChannel = -1;
+    public static final int kTopServoChannel = -1;
+    public static final double kServoUpAngle = 0.0;
+    public static final double kServoDownAngle = 90.0;
+    public static final double kElevatorGoal0 = 0;
+    public static final double kElevatorGoal1 = 1.0;
+    public static final double kElevatorGoal2 = 2.0;
+    public static final double kElevatorGoalOffset = 0.1;
+    public static final double kMaxVelocity = 10.0;
+    public static final double kMaxAcceleration = 20.0;
+    public static final double kS = 0.0;
+    public static final double kG = 0.0;
+    public static final double kV = 0.0;
+    public static final double kP = 0.0;
+    public static final double kI = 0.0;
+    public static final double kD = 0.0;
+    public static final double kdt = 0.02;
+  }
 }
