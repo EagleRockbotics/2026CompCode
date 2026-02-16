@@ -3,15 +3,15 @@
     "front": -13.5,
     "left": 13.5
   },
-  "absoluteEncoderOffset": 88.9452,
+  "absoluteEncoderOffset": -269.91216,
   "drive": {
     "type": "talonfxs_neo",
-    "id": 6,
+    "id": 5,
     "canbus": "Swerve CAN"
   },
   "angle": {
     "type": "talonfxs_neo",
-    "id": 7,
+    "id": 6,
     "canbus": "Swerve CAN"
   },
   "encoder": {

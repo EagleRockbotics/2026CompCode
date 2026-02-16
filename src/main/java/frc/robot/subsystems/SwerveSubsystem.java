@@ -11,6 +11,10 @@ import java.lang.StackWalker.Option;
 import java.util.Optional;
 
 import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.TalonFXS;
+import com.ctre.phoenix6.configs.TalonFXSConfigurator;
+import com.ctre.phoenix6.configs.ExternalFeedbackConfigs;
+import com.ctre.phoenix6.configs.TalonFXSConfiguration;
 import com.revrobotics.spark.SparkMax;
 
 import choreo.trajectory.SwerveSample;
@@ -29,6 +33,7 @@ import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.networktables.StructPublisher;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -73,8 +78,21 @@ public class SwerveSubsystem extends SubsystemBase {
     }
 
     swerveDrive.zeroGyro();
+    swerveDrive.useExternalFeedbackSensor();
+    swerveDrive.setModuleEncoderAutoSynchronize(false, 0);
 
-    swerveDrive.useInternalFeedbackSensor();
+    SwerveModule[] modules = swerveDrive.getModules();
+    for (SwerveModule m : modules) {
+      TalonFXS motor = (TalonFXS) m.getAngleMotor().getMotor();
+      CANcoder moduleEncoder = (CANcoder) m.getAbsoluteEncoder().getAbsoluteEncoder();
+      double sensorToMechanismRatio = 1;
+      TalonFXSConfigurator configurator = motor.getConfigurator();
+      configurator.apply(new ExternalFeedbackConfigs()
+      .withRemoteCANcoder(moduleEncoder)
+      .withSensorToMechanismRatio(sensorToMechanismRatio)
+      .withAbsoluteSensorDiscontinuityPoint(1));
+
+    }
 
     TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
         swerveDrive.getMaximumChassisAngularVelocity(),
@@ -95,17 +113,7 @@ public class SwerveSubsystem extends SubsystemBase {
           ChassisSpeeds desiredSpeeds = new ChassisSpeeds(-this.input.getRawAxis(1), -this.input.getRawAxis(0),
               -this.input.getRawAxis(4));
           driveWrapper(desiredSpeeds);
-       }).beforeStarting(() -> {
-          SwerveModule[] modules = swerveDrive.getModules();
-          // for (SwerveModule m : modules) {
-          // SparkMax m_Motor = (SparkMax) m.getAngleMotor().getMotor();
-          // CANcoder mEncoder = (CANcoder) m.getAbsoluteEncoder().getAbsoluteEncoder();
-          // m_Motor.getAlternateEncoder().setPosition(mEncoder.getAbsolutePosition().refresh().getValueAsDouble()
-          // *
-          // 360);
-          // }
-
-        });
+       });
 
   }
 
@@ -142,16 +150,6 @@ public class SwerveSubsystem extends SubsystemBase {
   public Command updatedNT() {
     return run(() -> {
       swervePublisher.set(this.swerveDrive.getStates());
-    }).beforeStarting(() -> {
-      SwerveModule[] modules = swerveDrive.getModules();
-      for (SwerveModule m : modules) {
-        SparkMax m_Motor = (SparkMax) m.getAngleMotor().getMotor();
-        CANcoder mEncoder = (CANcoder) m.getAbsoluteEncoder().getAbsoluteEncoder();
-        m_Motor.getAlternateEncoder().setPosition(mEncoder.getAbsolutePosition().refresh().getValueAsDouble()
-            *
-            360);
-      }
-
     });
   }
 
@@ -161,15 +159,6 @@ public class SwerveSubsystem extends SubsystemBase {
           ChassisSpeeds desiredSpeeds = new ChassisSpeeds(this.input.getRawAxis(1), this.input.getRawAxis(0),
               -this.input.getRawAxis(4));
           driveWrapper(desiredSpeeds);
-          SwerveModule[] modules = swerveDrive.getModules();
-          // for (SwerveModule m : modules) {
-          // SparkMax m_Motor = (SparkMax) m.getAngleMotor().getMotor();
-          // CANcoder mEncoder = (CANcoder) m.getAbsoluteEncoder().getAbsoluteEncoder();
-          // m_Motor.getAlternateEncoder().setPosition(mEncoder.getAbsolutePosition().refresh().getValueAsDouble()
-          // *
-          // 360);
-          // }
-
         });
   }
 
