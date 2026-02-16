@@ -10,9 +10,9 @@ import com.revrobotics.spark.SparkLowLevel;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.Servo;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
@@ -20,69 +20,57 @@ import frc.robot.Constants;
 public class ElevatorSubsystem extends SubsystemBase {
   /** Creates a new ExampleSubsystem. */
 
-  private final SparkFlex m_elevatorMotor = new SparkFlex(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
+  private final SparkFlex m_motor = new SparkFlex(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
   private final Servo m_bottomServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
   private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
 
-  private final RelativeEncoder m_elevatorEncoder = m_elevatorMotor.getEncoder();
+  private final RelativeEncoder m_encoder = m_motor.getEncoder();
 
   private final TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(Constants.ElevatorConstants.kMaxVelocity, Constants.ElevatorConstants.kMaxAcceleration);
-  private final ProfiledPIDController m_elevatorMotorController = new ProfiledPIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD, m_constraints);
+  private final ProfiledPIDController m_controller = new ProfiledPIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD, m_constraints);
   private final ElevatorFeedforward m_feedforward = new ElevatorFeedforward(Constants.ElevatorConstants.kS, Constants.ElevatorConstants.kG, Constants.ElevatorConstants.kV);
 
+  private final XboxController m_helperStick;
 
   public ElevatorSubsystem() {
-    m_elevatorEncoder.setPosition(0);
-    m_elevatorMotorController.setGoal(0);
-    // If we want to raise servos during initialization
-    // raiseTopServo();
-    // raiseBottomServo();
-  }
-  public void lowerTopServo() {
-      m_topServo.setAngle(Constants.ElevatorConstants.kServoDownAngle);
-  }
-  public void raiseTopServo() {
-      m_topServo.setAngle(Constants.ElevatorConstants.kServoUpAngle);
-  }
-  public void lowerBottomServo() {
-    m_bottomServo.setAngle(Constants.ElevatorConstants.kServoDownAngle);
-  }
-  public void raiseBottomServo() {
-    m_bottomServo.setAngle(Constants.ElevatorConstants.kServoUpAngle);
-  }
-  public void raiseElevatorByOffset() {
-    m_elevatorMotor.set(m_elevatorMotorController.calculate(m_elevatorEncoder.getPosition(), m_elevatorEncoder.getPosition()+Constants.ElevatorConstants.kElevatorGoalOffset));
+    m_encoder.setPosition(0);
+    m_helperStick = new XboxController(Constants.OperatorConstants.kHelperControllerPort);
   }
   public Command teleopCommand() {
     return run(
       () -> {
-
+        if(m_helperStick.getBButtonPressed()) {
+          m_controller.setGoal(Constants.ElevatorConstants.kPosition1);
+        } else{
+          m_controller.setGoal(Constants.ElevatorConstants.kBottomPosition);
+        }
+        m_motor.setVoltage(m_controller.calculate(m_encoder.getPosition(), m_controller.getGoal())
+        + m_feedforward.calculate(m_controller.getSetpoint().velocity));
       });
   }
-
-  /**
-   * Example command factory method.
-   *
-   * @return a command
-   */
-  public Command exampleMethodCommand() {
-    // Inline construction of command goes here.
-    // Subsystem::RunOnce implicitly requires `this` subsystem.
+  public Command lowerBottomServoCommand() {
     return runOnce(
-        () -> {
-          /* one-time action goes here */
-        });
+      () -> {
+        m_bottomServo.setAngle(Constants.ElevatorConstants.kServoDownAngle);
+      });
   }
-
-  /**
-   * An example method querying a boolean state of the subsystem (for example, a
-   * digital sensor).
-   *
-   * @return value of some boolean subsystem state, such as a digital sensor.
-   */
-  public boolean exampleCondition() {
-    // Query some boolean state, such as a digital sensor.
-    return false;
+  public Command raiseBottomServoCommand() {
+    return runOnce(
+      () -> {
+        m_bottomServo.setAngle(Constants.ElevatorConstants.kServoUpAngle);
+      });
+  }
+  public Command lowerTopServoCommand() {
+    return runOnce(
+      () -> {
+        m_topServo.setAngle(Constants.ElevatorConstants.kServoDownAngle);
+      });
+  }
+  public Command raiseTopServoCommand() {
+    return runOnce(
+      () -> {
+        m_topServo.setAngle(Constants.ElevatorConstants.kServoUpAngle);
+      });
   }
 
   @Override
