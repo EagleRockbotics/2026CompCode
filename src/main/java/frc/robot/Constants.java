@@ -52,9 +52,22 @@ public final class Constants {
 
   public static class IntakeConstants {
     public static final double kdt = 0.02;
+    //Motor ID's
     public static final int k_FrontIntakeId = 0;
     public static final int k_FrontSpinId = 0;
     public static final int k_BackIntakeId = 0;
     public static final int k_BackSpinId = 0;
+    //Motor Power
+    public static final double k_IntakePower = 0;
+    public static final double k_SpinPower = 0;
+    //PID Constants
+    public static final double k_Kp = 0;
+    public static final double k_Kd = 0;
+    //Arm Feedwater Constants
+    public static final double k_Ks = 0;
+    public static final double k_Kg = 0;
+    public static final double k_Kv = 0;
+
+    public static final double k_TargetAngle = 90;
     }
 }
