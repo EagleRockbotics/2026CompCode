@@ -59,6 +59,9 @@ public final class Constants {
     public static final int k_FrontSpinId = 0;
     public static final int k_BackIntakeId = 0;
     public static final int k_BackSpinId = 0;
+    //encoder ID's
+    public static final int k_frontEncoderId = 0;
+    public static final int k_BackEncoderId = 0;
     //Motor Power
     public static final double k_IntakePower = 0;
     public static final double k_SpinPower = 0;
@@ -69,6 +72,8 @@ public final class Constants {
     public static final double k_Ks = 0;
     public static final double k_Kg = 0;
     public static final double k_Kv = 0;
+
+    public static final double k_EncoderThreshold = 0;
 
     public static final double k_TargetAngle = 90;
     }
