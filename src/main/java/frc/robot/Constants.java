@@ -53,13 +53,13 @@ public final class Constants {
   public static class IntakeConstants {
     public static final double kdt = 0.02;
     //Motor ID's
-    public static final int k_FrontIntakeId = 0;
-    public static final int k_FrontSpinId = 0;
-    public static final int k_BackIntakeId = 0;
-    public static final int k_BackSpinId = 0;
+    public static final int k_RightIntakeId = 0;
+    public static final int k_LeftIntakeId = 0;
+    public static final int k_RightSpinId = 0;
+    public static final int k_LeftSpinId = 0;
     //encoder ID's
-    public static final int k_frontEncoderId = 0;
-    public static final int k_BackEncoderId = 0;
+    public static final int k_RightEncoderId = 0;
+    public static final int k_LeftEncoderId = 0;
     //Motor Power
     public static final double k_IntakePower = 0;
     public static final double k_SpinPower = 0;
