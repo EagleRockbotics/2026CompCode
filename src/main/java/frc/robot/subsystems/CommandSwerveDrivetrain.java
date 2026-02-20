@@ -11,11 +11,14 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -23,7 +26,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-
+import frc.robot.Constants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -49,6 +52,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
+
+    /* PID Control for turning in YAGSL */
+    private final ProfiledPIDController thetaController;
 
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
@@ -127,6 +133,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, modules);
+        TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
+            2 * Math.PI,
+            2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
+        thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
+        Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -151,6 +162,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, modules);
+        TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
+            2 * Math.PI,
+            2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
+        thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
+        Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -183,6 +199,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
+        TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
+            2 * Math.PI,
+            2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
+        thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
+        Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -196,6 +217,18 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public Command applyRequest(Supplier<SwerveRequest> request) {
         return run(() -> this.setControl(request.get()));
+    }
+
+    public void followTrajectory(SwerveSample sample) {
+        Pose2d pose = this.getPose();
+        this.applyRequest(() -> {return new SwerveRequest.FieldCentric()
+                                .withVelocityX(sample.vx + Constants.ChoreoConstants.xController.calculate(pose.getX(), sample.x))
+                                .withVelocityY(sample.vy + Constants.ChoreoConstants.yController.calculate(pose.getY(), sample.y))
+                                .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading));});
+    }
+
+    public Pose2d getPose() {
+        return this.samplePoseAt(Utils.getCurrentTimeSeconds()).orElse(new Pose2d());
     }
 
     /**

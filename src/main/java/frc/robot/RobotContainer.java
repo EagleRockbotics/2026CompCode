@@ -54,9 +54,8 @@ public class RobotContainer {
       Constants.OperatorConstants.kDriverControllerPort);
   private final CommandXboxController helperStick = new CommandXboxController(
       Constants.OperatorConstants.kHelperControllerPort);
-  private final SwerveSubsystem m_driveSubsystem = new SwerveSubsystem(
-      new File(Filesystem.getDeployDirectory(), "swerve/" + Constants.SwerveConstants.kCurrentRobot), driveStick);
-  private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_driveSubsystem);
+  private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
+  private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
 
   // Code copied from CTRE Swerve template
       private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -74,7 +73,7 @@ public class RobotContainer {
 
     private final CommandXboxController joystick = new CommandXboxController(0);
 
-    public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -83,7 +82,7 @@ public class RobotContainer {
     // Configure the trigger bindings
     configureBindings();
     // TODO: Whenever you make a new subsytem, put it in this function.
-    m_autoHandler.setupAutoReflection(this, m_driveSubsystem, m_autoHandler);
+    m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
   }
 
   /**
@@ -105,25 +104,25 @@ public class RobotContainer {
         // neutral mode is applied to the drive motors while disabled.
         final var idle = new SwerveRequest.Idle();
         RobotModeTriggers.disabled().whileTrue(
-            drivetrain.applyRequest(() -> idle).ignoringDisable(true)
+            m_drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-        joystick.b().whileTrue(drivetrain.applyRequest(() ->
+        joystick.a().whileTrue(m_drivetrain.applyRequest(() -> brake));
+        joystick.b().whileTrue(m_drivetrain.applyRequest(() ->
             point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
         ));
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
-        joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+        joystick.back().and(joystick.y()).whileTrue(m_drivetrain.sysIdDynamic(Direction.kForward));
+        joystick.back().and(joystick.x()).whileTrue(m_drivetrain.sysIdDynamic(Direction.kReverse));
+        joystick.start().and(joystick.y()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kForward));
+        joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
 
         // Reset the field-centric heading on left bumper press.
-        joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+        joystick.leftBumper().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
 
-        drivetrain.registerTelemetry(logger::telemeterize);
+        m_drivetrain.registerTelemetry(logger::telemeterize);
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
     // pressed,
@@ -141,7 +140,7 @@ public class RobotContainer {
   }
 
   public Command getTeleopCommand() {
-    return Commands.parallel(        drivetrain.applyRequest(() ->
+    return Commands.parallel(        m_drivetrain.applyRequest(() ->
                 drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier) // Drive forward with negative Y (forward)
                     .withVelocityY(-joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
                     .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
@@ -149,7 +148,7 @@ public class RobotContainer {
   }
 
   public Command getTestCommand() {
-    return Commands.parallel(m_driveSubsystem.updatedNT());
+    return Commands.parallel(null);
   }
 
 }

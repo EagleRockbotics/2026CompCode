@@ -11,6 +11,7 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants;
@@ -20,13 +21,13 @@ public class AutoHandlingSubsystem extends SubsystemBase {
     private final AutoFactory autoFactory;
     private final AutoChooser chooser;
 
-    public AutoHandlingSubsystem(SwerveSubsystem drive) {
-        autoFactory = new AutoFactory(drive::getPose, drive::resetOdometry, drive::followTrajectory,
+    public AutoHandlingSubsystem(CommandSwerveDrivetrain drive) {
+        autoFactory = new AutoFactory(drive::getPose, drive::resetPose, drive::followTrajectory,
                 Constants.AutonomousConstants.kEnableAllianceFlipping, drive);
         chooser = new AutoChooser();
     }
 
-    public void setupAutoReflection(RobotContainer container, SubsystemBase... subsystems) {
+    public void setupAutoReflection(RobotContainer container, Subsystem... subsystems) {
         // Basically Java has a feature where the types of objects can be treated as
         // objects themselves.
         // You can use this to get properties of the types of objects at runtime.
@@ -43,7 +44,7 @@ public class AutoHandlingSubsystem extends SubsystemBase {
         // We make a list like this because it makes it possible to check the arguments
         // of the Methods (for some reason. don't ask idk)
         Class<?>[] factoryClass = { AutoFactory.class };
-        for (SubsystemBase s : subsystems) {
+        for (Subsystem s : subsystems) {
             // Returns the type of the current subsystem. This will contain info abt it
             Class<?> sType = s.getClass();
             // Gets a list of methods in the class
