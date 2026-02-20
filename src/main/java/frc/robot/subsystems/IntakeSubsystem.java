@@ -65,7 +65,17 @@ public class IntakeSubsystem extends SubsystemBase {
                 m_motorRightIntake.set(-Constants.IntakeConstants.k_EncoderThreshold);
               } else { 
                  m_motorRightIntake.set(Constants.IntakeConstants.k_EncoderThreshold);
-              }itAButton() && !m_driveController.getBButton()) {
+              }
+            /*if (m_encoder.getPosition().getValueAsDouble() >= 0.25) {
+              m_motorRightSpin.set(0);
+            }*/
+
+          
+          } else {
+            m_motorRightSpin.set(calculateMotorOutput(0, RIGHT));
+                      }
+          /* 
+          if (m_driveController.getAButton() && !m_driveController.getBButton()) {
             m_motorLeftSpin.set(Constants.IntakeConstants.k_SpinPower);
           } else {
             m_motorLeftSpin.set(-Constants.IntakeConstants.k_SpinPower);
