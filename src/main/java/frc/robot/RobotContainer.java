@@ -11,13 +11,13 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.AutoHandlingSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ExampleSubsystem;
-import frc.robot.subsystems.SwerveSubsystem;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import java.io.File;
+import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Dictionary;
@@ -26,6 +26,9 @@ import java.util.Hashtable;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 
+import choreo.auto.AutoFactory;
+import choreo.auto.AutoRoutine;
+import choreo.auto.AutoTrajectory;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Joystick;
@@ -134,10 +137,6 @@ public class RobotContainer {
    *
    * @return the command to run in autonomous
    */
-  public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
-    return Autos.exampleAuto(m_exampleSubsystem);
-  }
 
   public Command getTeleopCommand() {
     return Commands.parallel(        m_drivetrain.applyRequest(() ->
@@ -149,6 +148,13 @@ public class RobotContainer {
 
   public Command getTestCommand() {
     return Commands.parallel(null);
+  }
+
+  public AutoRoutine driveTest(AutoFactory factory) {
+    AutoRoutine routine = factory.newRoutine("driveTest");
+    AutoTrajectory driveFwdOneMeter = routine.trajectory("NewPath");
+    routine.active().onTrue(Commands.sequence(driveFwdOneMeter.resetOdometry(), driveFwdOneMeter.cmd()));
+    return routine;
   }
 
 }

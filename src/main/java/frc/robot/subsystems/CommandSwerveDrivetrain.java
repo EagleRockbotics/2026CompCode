@@ -200,8 +200,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
         TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
-            2 * Math.PI,
-            2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
+            11.321,
+            2 * 11.321 * Constants.SwerveConstants.kAngularAccelerationFactor);
         thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
         if (Utils.isSimulation()) {

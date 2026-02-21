@@ -79,6 +79,8 @@ public class AutoHandlingSubsystem extends SubsystemBase {
                 }
             }
         }
+        SmartDashboard.putData(chooser);
+        RobotModeTriggers.autonomous().whileTrue(chooser.selectedCommandScheduler());
     }
 
 }
