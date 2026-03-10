@@ -6,6 +6,7 @@ package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.autos.ChoreoTraj;
+import frc.robot.autos.ChoreoTraj;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.generated.TunerConstants;
@@ -25,6 +26,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
+import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 
@@ -32,6 +34,9 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -58,6 +63,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final Pigeon2 m_gyro = new Pigeon2(Constants.kPigeonID);
+  private final Pigeon2 m_gyro = new Pigeon2(Constants.kPigeonID);
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   private final CommandXboxController driveStick = new CommandXboxController(
       Constants.OperatorConstants.kDriverControllerPort);
@@ -81,7 +87,9 @@ public class RobotContainer {
   private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
   private final Telemetry logger = new Telemetry(MaxSpeed);
+  private final Telemetry logger = new Telemetry(MaxSpeed);
 
+  private final CommandXboxController joystick = new CommandXboxController(0);
   private final CommandXboxController joystick = new CommandXboxController(0);
 
   /**
@@ -92,6 +100,7 @@ public class RobotContainer {
     configureBindings();
     // TODO: Whenever you make a new subsytem, put it in this function.
     m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
+    m_autoHandler.publishChooser();
     m_autoHandler.publishChooser();
   }
 
@@ -167,9 +176,8 @@ public class RobotContainer {
 
   public Command resetGyro() {
     return Commands.runOnce(
-        () -> {
-          m_gyro.setYaw(0.0, 10);
-        });
+      () -> {m_gyro.setYaw(0.0, 10);}
+    );
   }
 
   public AutoRoutine driveTest(AutoFactory factory) {
@@ -195,6 +203,14 @@ public class RobotContainer {
     routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd()));
     traj.done().onTrue(m_drivetrain.goToEndPose(traj));
     return routine;
+  }
+
+  public void publishAutoChooser() {
+    this.m_autoHandler.publishChooser();
+  }
+
+  public void resetAutoRoutines() {
+    this.m_autoHandler.resetRoutines();
   }
 
   public void publishAutoChooser() {
