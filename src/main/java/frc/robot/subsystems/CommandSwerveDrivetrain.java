@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Volts;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -16,14 +17,19 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
@@ -56,6 +62,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* PID Control for turning in YAGSL */
     private final ProfiledPIDController thetaController;
 
+    /* Publisher for observed swerve states */
+    private final StructArrayPublisher m_observedPublisher = NetworkTableInstance.getDefault().getStructArrayTopic("Swerve/Observed", SwerveModuleState.struct).publish();
+    private final DoublePublisher m_thetaControllerPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Swerve/ThetaControllerOut").publish();
+    private final DoublePublisher m_trajectoryHeadingPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Swerve/TrajectoryHeading").publish();
+    private final DoublePublisher m_trajectoryOmegaPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Swerve/TrajectoryOmega").publish();
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
         new SysIdRoutine.Config(
@@ -138,6 +149,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
         thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
+        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -167,6 +179,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
         thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
+        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -204,6 +217,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             2 * 11.321 * Constants.SwerveConstants.kAngularAccelerationFactor);
         thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
+        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -216,19 +230,31 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @return Command to run
      */
     public Command applyRequest(Supplier<SwerveRequest> request) {
-        return run(() -> this.setControl(request.get()));
+        return run(() -> {this.setControl(request.get()); m_observedPublisher.set(this.getState().ModuleStates);});
     }
 
     public void followTrajectory(SwerveSample sample) {
         Pose2d pose = this.getPose();
-        this.applyRequest(() -> {return new SwerveRequest.FieldCentric()
+        m_observedPublisher.set(this.getState().ModuleStates);
+        m_thetaControllerPublisher.set(thetaController.calculate(pose.getRotation().getRadians(), sample.heading));
+        m_trajectoryHeadingPublisher.set(sample.heading);
+        m_trajectoryOmegaPublisher.set(sample.getTimestamp());
+        this.setControl(new SwerveRequest.FieldCentric()
                                 .withVelocityX(sample.vx + Constants.ChoreoConstants.xController.calculate(pose.getX(), sample.x))
                                 .withVelocityY(sample.vy + Constants.ChoreoConstants.yController.calculate(pose.getY(), sample.y))
-                                .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading));});
+                                .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading)));
+    }
+
+    public Command stopRobot() {
+        return Commands.run(() -> {this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));});
     }
 
     public Pose2d getPose() {
         return this.samplePoseAt(Utils.getCurrentTimeSeconds()).orElse(new Pose2d());
+    }
+
+    public void resetThetaController() {
+        thetaController.reset(0);
     }
 
     /**

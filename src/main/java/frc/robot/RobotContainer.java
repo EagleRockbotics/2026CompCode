@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.autos.ChoreoTraj;
 import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.generated.TunerConstants;
@@ -23,6 +24,7 @@ import java.lang.reflect.Type;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 
@@ -30,6 +32,9 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
@@ -52,6 +57,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
+  private final Pigeon2 m_gyro = new Pigeon2(Constants.kPigeonID);
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   private final CommandXboxController driveStick = new CommandXboxController(
       Constants.OperatorConstants.kDriverControllerPort);
@@ -60,23 +66,21 @@ public class RobotContainer {
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
 
-  // Code copied from CTRE Swerve template
-      private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
-    private double TeleopSpeedMultiplier = 0.1;
+// Code copied from CTRE Swerve template
+  private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
+  private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+  private double TeleopSpeedMultiplier = 0.1;
 
-    /* Setting up bindings for necessary control of the swerve drive platform */
-    private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-    private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-    private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+  /* Setting up bindings for necessary control of the swerve drive platform */
+  private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
+          .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+          .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
+  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
-    private final Telemetry logger = new Telemetry(MaxSpeed);
+  private final Telemetry logger = new Telemetry(MaxSpeed);
 
-    private final CommandXboxController joystick = new CommandXboxController(0);
-
-
+  private final CommandXboxController joystick = new CommandXboxController(0);
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -86,6 +90,7 @@ public class RobotContainer {
     configureBindings();
     // TODO: Whenever you make a new subsytem, put it in this function.
     m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
+    m_autoHandler.publishChooser();
   }
 
   /**
@@ -150,11 +155,44 @@ public class RobotContainer {
     return Commands.parallel(null);
   }
 
+  public Command getAutoCommand() {
+    m_drivetrain.resetThetaController();
+    return m_autoHandler.getAutonomousCommand();
+  }
+
+  public Command resetGyro() {
+    return Commands.runOnce(
+      () -> {m_gyro.setYaw(0.0, 10);}
+    );
+  }
+
   public AutoRoutine driveTest(AutoFactory factory) {
     AutoRoutine routine = factory.newRoutine("driveTest");
-    AutoTrajectory driveFwdOneMeter = routine.trajectory("NewPath");
-    routine.active().onTrue(Commands.sequence(driveFwdOneMeter.resetOdometry(), driveFwdOneMeter.cmd()));
+    AutoTrajectory driveFwdOneMeter = ChoreoTraj.NewPath.asAutoTraj(routine);
+    routine.active().onTrue(Commands.parallel(Commands.sequence(driveFwdOneMeter.resetOdometry(), driveFwdOneMeter.cmd(), m_drivetrain.stopRobot())));
     return routine;
+  }
+
+  public AutoRoutine turnTest(AutoFactory factory) {
+    AutoRoutine routine = factory.newRoutine("turnTest");
+    AutoTrajectory spin = ChoreoTraj.Spinny.asAutoTraj(routine);
+    routine.active().onTrue(Commands.sequence(spin.resetOdometry(), spin.cmd(), m_drivetrain.stopRobot()));
+    return routine;
+  }
+
+  public AutoRoutine movingTurnTest(AutoFactory factory) {
+    AutoRoutine routine = factory.newRoutine("movingTurnTest");
+    AutoTrajectory traj = ChoreoTraj.MovingSpinny.asAutoTraj(routine);
+    routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd(), m_drivetrain.stopRobot()));
+    return routine;
+  }
+
+  public void publishAutoChooser() {
+    this.m_autoHandler.publishChooser();
+  }
+
+  public void resetAutoRoutines() {
+    this.m_autoHandler.resetRoutines();
   }
 
 }

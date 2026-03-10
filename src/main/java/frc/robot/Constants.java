@@ -20,6 +20,7 @@ import edu.wpi.first.math.controller.PIDController;
  */
 public final class Constants {
   public static final String kLimelightName = "limelight-rock";
+  public static final int kPigeonID = 14;
 
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
@@ -28,17 +29,16 @@ public final class Constants {
 
   public static class SwerveConstants {
     public static final double kDeadband = 0.1;
-    public static final double kAngularAccelerationFactor = 2;
+    public static final double kAngularAccelerationFactor = 4;
     public static final String kCurrentRobot = "comp2025";
-    // sybau bro
   }
 
   public static class ChoreoConstants {
-    public static final PIDController xController = new PIDController(0, 0, 0);
-    public static final PIDController yController = new PIDController(0, 0, 0);
-    public static final double kP_theta = 0;
+    public static final PIDController xController = new PIDController(10, 0, 0);
+    public static final PIDController yController = new PIDController(10, 0, 0);
+    public static final double kP_theta = 15;
     public static final double kI_theta = 0;
-    public static final double kD_theta = 0;
+    public static final double kD_theta = 0.01;
   }
 
   public static class AutonomousConstants {

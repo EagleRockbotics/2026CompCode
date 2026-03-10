@@ -32,8 +32,8 @@
    "val":20.41165665
   },
   "inertia":{
-   "exp":"2 kg m ^ 2",
-   "val":2.0
+   "exp":"4 kg m ^ 2",
+   "val":4.0
   },
   "gearing":{
    "exp":"6.75",
@@ -76,7 +76,7 @@
  },
  "generationFeatures":[],
  "codegen":{
-  "root":"..\\C:\\Users\\lausd_user\\Desktop\\Robotics\\6658 Code Base modern 2026 iphone 17-Imported\\src\\main\\java",
+  "root":"..\\..\\java\\frc\\robot\\autos",
   "genVars":true,
   "genTrajData":true,
   "useChoreoLib":true
