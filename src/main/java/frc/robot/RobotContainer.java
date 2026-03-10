@@ -176,14 +176,16 @@ public class RobotContainer {
     AutoRoutine routine = factory.newRoutine("driveTest");
     AutoTrajectory driveFwdOneMeter = ChoreoTraj.NewPath.asAutoTraj(routine);
     routine.active().onTrue(Commands.parallel(
-        Commands.sequence(driveFwdOneMeter.resetOdometry(), driveFwdOneMeter.cmd(), m_drivetrain.stopRobot())));
+        Commands.sequence(driveFwdOneMeter.resetOdometry(), driveFwdOneMeter.cmd())));
+    driveFwdOneMeter.done().onTrue(m_drivetrain.goToEndPose(driveFwdOneMeter));
     return routine;
   }
 
   public AutoRoutine turnTest(AutoFactory factory) {
     AutoRoutine routine = factory.newRoutine("turnTest");
     AutoTrajectory spin = ChoreoTraj.Spinny.asAutoTraj(routine);
-    routine.active().onTrue(Commands.sequence(spin.resetOdometry(), spin.cmd(), m_drivetrain.stopRobot()));
+    routine.active().onTrue(Commands.sequence(spin.resetOdometry(), spin.cmd()));
+    spin.done().onTrue(m_drivetrain.goToEndPose(spin));
     return routine;
   }
 

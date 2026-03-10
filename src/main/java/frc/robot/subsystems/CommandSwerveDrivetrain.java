@@ -1,7 +1,6 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.Second;
-import static edu.wpi.first.units.Units.Volts;
+import static edu.wpi.first.units.Units.*;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -18,13 +17,9 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
-import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -63,71 +58,64 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* PID Control for turning in YAGSL */
     private final ProfiledPIDController thetaController;
 
-    /* Publisher for observed swerve states */
-
-    private final StructArrayPublisher m_observedPublisher = NetworkTableInstance.getDefault().g
-            etStructArrayTopic("Swerve/Observed", SwerveModuleState.struct).publish();
-
-    private final DoublePublisher m_thetaControllerPublisher = NetworkTableInstance.getDefault().g
-            etDoubleTopic("Swerve/ThetaControllerOut").publish();
-
-    private final DoublePublisher m_trajectoryHeadingPublisher = NetworkTableInstance.getDefault()
-            .getDoubleTopic("Swerve/TrajectoryHeading").publish();pr*vate
-    final DoublePublisher m_trajectoryOmegaPublisher = NetworkTableInstance
-     * getDefault().getDoubl
-     Topic("Swerve/TrajectoryOmega").publish();
-    /* SysId routine for characterizing translation. This is used to find PI
-            ate final SysIdRoutine m
-                    SysId Config(
-                    null,        // Use default ramp rate (1 V/s)
-                    Volts // Reduce dynamic step voltag
-                    null,        // Use default timeout 
-                    // Log state with SignalLogger class  
-            ),
-                    SysIdRoutine.Mechanism(
-                    outpu
-                    null     )
+    /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
+    private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
+        new SysIdRoutine.Config(
+            null,        // Use default ramp rate (1 V/s)
+            Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
+            null,        // Use default timeout (10 s)
+            // Log state with SignalLogger class
+            state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
+        ),
+        new SysIdRoutine.Mechanism(
+            output -> setControl(m_translationCharacterization.withVolts(output)),
+            null,
+            this
+        )
     );
 
-     * 
-     * 
-     
-    /* SysId routine for characterizing steer. This is used to find PI
-            ate final SysIdRoutine m
-                    SysId Config(
-                    null,        // Use default ramp rate (1 V
-                    Volts // Use dynamic voltage of 7 V
-                    null,        // Use default timeout 
-                    // Log state with SignalLogger class  
-            ),
-                    SysIdRoutine.Mechanism(
-                    volts
-                    null     )
+    /* SysId routine for characterizing steer. This is used to find PID gains for the steer motors. */
+    private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
+        new SysIdRoutine.Config(
+            null,        // Use default ramp rate (1 V/s)
+            Volts.of(7), // Use dynamic voltage of 7 V
+            null,        // Use default timeout (10 s)
+            // Log state with SignalLogger class
+            state -> SignalLogger.writeString("SysIdSteer_State", state.toString())
+        ),
+        new SysIdRoutine.Mechanism(
+            volts -> setControl(m_steerCharacterization.withVolts(volts)),
+            null,
+            this
+        )
     );
 
     /*
      * SysId routine for characterizing rotation.
-     * 
-     * This is used to find PID gains for the FieldCentricFacingAngle Heading
-     * ontroller.
+     * This is used to find PID gains for the FieldCentricFacingAngle HeadingController.
      * See the documentation of SwerveRequest.SysIdSwerveRotation for info on importing the log to SysId.
      */
-            ate final SysIdRoutine m
-                    SysIdRoutine.Config(
-                    /* This is in radians per second²,
-                    Volts.of(Math.PI / 6).per(Second),
-                    /* This is in radi
-                    Volts.of(Math.PI),
-                    null, // Use default timeout (10 s)
-                    // Log state with SignalLogger class  
-            ),
-                    SysIdRoutin
-                        ut -> {
-                        /* output is actually radians per second, but SysId only supports "volts" */
-                        setControl(m_rotationCharacterization.withRot
-                        /* also log the requested output for SysId */
-                      
-                    },null));
+    private final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
+        new SysIdRoutine.Config(
+            /* This is in radians per second², but SysId only supports "volts per second" */
+            Volts.of(Math.PI / 6).per(Second),
+            /* This is in radians per second, but SysId only supports "volts" */
+            Volts.of(Math.PI),
+            null, // Use default timeout (10 s)
+            // Log state with SignalLogger class
+            state -> SignalLogger.writeString("SysIdRotation_State", state.toString())
+        ),
+        new SysIdRoutine.Mechanism(
+            output -> {
+                /* output is actually radians per second, but SysId only supports "volts" */
+                setControl(m_rotationCharacterization.withRotationalRate(output.in(Volts)));
+                /* also log the requested output for SysId */
+                SignalLogger.writeDouble("Rotational_Rate", output.in(Volts));
+            },
+            null,
+            this
+        )
+    );
 
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
@@ -135,25 +123,23 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /**
      * Constructs a CTRE SwerveDrivetrain using the specified constants.
      * <p>
-     * 
-     * This constructs the underlying hardware devices, so users should not c
-     * nstruct
+     * This constructs the underlying hardware devices, so users should not construct
      * the devices themselves. If they need the devices, they can access them through
      * getters in the classes.
-     * 
-     * @param drivetr             Drivetrain-wide constants for the swerve drive
+     *
+     * @param drivetrainConstants   Drivetrain-wide constants for the swerve drive
      * @param modules               Constants for each specific module
      */
-            ic CommandSwerveDrivetrain(
-            SwerveDrivetrainConstants drivetrainConst    SwerveModuleConstants<?, ?, ?>... modules
+    public CommandSwerveDrivetrain(
+        SwerveDrivetrainConstants drivetrainConstants,
+        SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, modules);
-                ezoidProfile
-                2 * Math.PI,
+        TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
+            2 * Math.PI,
             2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
-                thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
+        thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
-        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -162,9 +148,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /**
      * Constructs a CTRE SwerveDrivetrain using the specified constants.
      * <p>
-     * 
-     * This constructs the underlying hardware devices, so users should not c
-     * nstruct
+     * This constructs the underlying hardware devices, so users should not construct
      * the devices themselves. If they need the devices, they can access them through
      * getters in the classes.
      *
@@ -174,17 +158,17 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      *                                CAN FD, and 100 Hz on CAN 2.0.
      * @param modules                 Constants for each specific module
      */
-            ic CommandSwerveDrivetrain(
-            SwerveDrivetrainConstants drive
-            double odometryUpdateFrequency,    SwerveModuleConstants<?, ?, ?>... modules
+    public CommandSwerveDrivetrain(
+        SwerveDrivetrainConstants drivetrainConstants,
+        double odometryUpdateFrequency,
+        SwerveModuleConstants<?, ?, ?>... modules
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, modules);
-                ezoidProfile
-                2 * Math.PI,
+        TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
+            2 * Math.PI,
             2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
-                thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
+        thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
-        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         if (Utils.isSimulation()) {
             startSimThread();
         }
@@ -193,106 +177,94 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /**
      * Constructs a CTRE SwerveDrivetrain using the specified constants.
      * <p>
-     * 
-     * This constructs the underlying hardware devices, so users should not c
-     * nstruct
+     * This constructs the underlying hardware devices, so users should not construct
      * the devices themselves. If they need the devices, they can access them through
      * getters in the classes.
      *
-     *                                  
      * @param drivetrainConstants       Drivetrain-wide constants for the swerve drive
      * @param odometryUpdateFrequency   The frequency to run the odometry loop. If
-     *                                  
      *                                  unspecified or set to 0 Hz, this is 250 Hz on
      *                                  CAN FD, and 100 Hz on CAN 2.0.
-     *                                  
-     * @param odometryStandardDeviation The standard deviation for odometry calcu
-     *                                  ation
+     * @param odometryStandardDeviation The standard deviation for odometry calculation
      *                                  in the form [x, y, theta]ᵀ, with units in meters
      *                                  and radians
-     *                                  
-     * @param visionStandardDeviation   The standard deviation for vision calcula
-     *                                  ion
+     * @param visionStandardDeviation   The standard deviation for vision calculation
      *                                  in the form [x, y, theta]ᵀ, with units in meters
      *                                  and radians
      * @param modules                   Constants for each specific module
      */
-            ic CommandSwerveDrivetrain(
-            SwerveDrivetrainConstants drive
-            double odometryUpdateFrequency,
-            Matrix<N3, N1> odometryStandardDeviatio
-            Matrix<N3, N1> visionStandardDeviation,    SwerveModuleConstants<?, ?, ?>... modules
+    public CommandSwerveDrivetrain(
+        SwerveDrivetrainConstants drivetrainConstants,
+        double odometryUpdateFrequency,
+        Matrix<N3, N1> odometryStandardDeviation,
+        Matrix<N3, N1> visionStandardDeviation,
+        SwerveModuleConstants<?, ?, ?>... modules
     ) {
-                
-        super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, vi
-                ezoidPr
-                11.321,
-            2 * 11.321 * Constants.SwerveConstants.kAngularAccelerationFactor);
-                thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
+        super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
+        TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
+            2 * Math.PI,
+            2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
+        thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
-        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         if (Utils.isSimulation()) {
             startSimThread();
         }
     }
 
     /**
-     * 
      * Returns a command that applies the specified control request to this swerve drivetrain.
      *
      * @param request Function returning the request to apply
      * @return Command to run
      */
-    public Command applyRe
-
-    quest(Supplier<SwerveRequest> r
-            quest) {
-        
-        return run(() -> {this.setControl(request.get()); m_observedPublisher.set(this.getState().ModuleStates);});
+    public Command applyRequest(Supplier<SwerveRequest> request) {
+        return run(() -> this.setControl(request.get()));
     }
 
     public void followTrajectory(SwerveSample sample) {
         Pose2d pose = this.getPose();
-        m_observedPublisher.set(this.getState().ModuleStates);
-        m_thetaControllerPublisher.set(thetaController.calculate(pose.getRotation().getRadians(), sample.heading));
-        m_trajectoryHeadingPublisher.set(sample.heading);
-        m_trajectoryOmegaPublisher.set(sample.getTimesta
-                veRequest.FieldCentric()
-                .withVelocityX(sample.vx + Constants.ChoreoConstants.xController.calculate(pose.getX(), sample.x))
-                .withVelocityY(sampl
-                        e.vy + Constants.ChoreoConstants.yController.calculate(pose.getY(), sample.y))
-                                .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading)));
-    }
-
-    public Command goToEndPose(AutoTrajectory traj) {
-        Command output = Commands.none();
-        try {
-            output = Commands.run(() -> {
-                Pose2d pose = this.getPose();
-                Pose2d end = traj.getFinalPose().get();
-                this.setControl(new SwerveRequest.FieldCentric()
-                        .withVelocityX(Constants.ChoreoConstants.xController.calculate(pose.getX(), end.getX()))
-                        .withVelocityY(Constants.ChoreoConstants.yController.calculate(pose.getY(), end.getY()))
-                        .withRotationalRate(thetaController.calculate(pose.getRotation().getRadians(),
-                                end.getRotation().getRadians())));
-            });
-        } catch (Exception e) {
-
-        
-
-    
-    public Command stopRobot() {
-
-        return Commands.run(() -> {
-            this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));
-        });
+        this.applyRequest(() -> {return new SwerveRequest.FieldCentric()
+                                .withVelocityX(sample.vx + Constants.ChoreoConstants.xController.calculate(pose.getX(), sample.x))
+                                .withVelocityY(sample.vy + Constants.ChoreoConstants.yController.calculate(pose.getY(), sample.y))
+                                .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading));});
     }
 
     public Pose2d getPose() {
         return this.samplePoseAt(Utils.getCurrentTimeSeconds()).orElse(new Pose2d());
     }
 
-    public void resetThetaController() {
+    public Command goToEndPose(AutoTrajectory traj) {
+       try {
+           return Commands.run(() -> {
+               Pose2d pose = this.getPose();
+               Pose2d end = traj.getFinalPose().get();
+               this.setControl(new SwerveRequest.FieldCentric()
+                       .withVelocityX(Constants.ChoreoConstants.xController.calculate(pose.getX(), end.getX()))
+                       .withVelocityY(Constants.ChoreoConstants.yController.calculate(pose.getY(), end.getY()))
+                       .withRotationalRate(thetaController.calculate(pose.getRotation().getRadians(),
+                               end.getRotation().getRadians())));
+           });
+       } catch (Exception e) {
+        return Commands.none();
+       }
+    }
+
+
+      
+
+
+  
+   public Command stopRobot() {
+       return Commands.run(() -> {
+           this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));
+       });
+   }
+
+
+   public void resetThetaController() {
+    this.thetaController.reset(0, 0);
+   }
+
 
     /**
      * Runs the SysId Quasistatic test in the given direction for the routine
@@ -320,25 +292,21 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public void periodic() {
         /*
          * Periodically try to apply the operator perspective.
-         * 
-         * If we haven't applied the operator perspective before, then we should app
-         * y it regardless of DS state.
-         * This allows us to correct the perspective in case the robot code rest
-         * rts mid-match.
-         * Otherwise, only check and apply the operator perspective if the DS is disabl
-         * d.
+         * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
+         * This allows us to correct the perspective in case the robot code restarts mid-match.
+         * Otherwise, only check and apply the operator perspective if the DS is disabled.
          * This ensures driving behavior doesn't change until an explicit disable event occurs during testing.
          */
         if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
-            DriverStation.getAlliance().ifPres
-                        peratorPerspectiveForward(
-                                anceColor == Alliance.Red
-                                ? kRedAlliancePerspectiveRotation        : kBlueAlliancePerspectiveRotation
+            DriverStation.getAlliance().ifPresent(allianceColor -> {
+                setOperatorPerspectiveForward(
+                    allianceColor == Alliance.Red
+                        ? kRedAlliancePerspectiveRotation
+                        : kBlueAlliancePerspectiveRotation
                 );
                 m_hasAppliedOperatorPerspective = true;
             });
         }
-
     }
 
     private void startSimThread() {
@@ -357,14 +325,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     /**
-     * 
-     * Adds a vision measurement to the Kalman Filter. This will correct the
-     * odometry pose estimate
+     * Adds a vision measurement to the Kalman Filter. This will correct the odometry pose estimate
      * while still accounting for measurement noise.
      *
-     * 
-     * @param visionRobotPoseM ters The pose of the robot as measured by
-     *                         he vision camera.
+     * @param visionRobotPoseMeters The pose of the robot as measured by the vision camera.
      * @param timestampSeconds The timestamp of the vision measurement in seconds.
      */
     @Override
@@ -373,31 +337,24 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     /**
-     * 
-     * Adds a vision measurement to the Kalman Filter. This will correct the
-     * odometry pose estimate
+     * Adds a vision measurement to the Kalman Filter. This will correct the odometry pose estimate
      * while still accounting for measurement noise.
      * <p>
      * Note that the vision measurement standard deviations passed into this method
      * will continue to apply to future measurements until a subsequent call to
      * {@link #setVisionMeasurementStdDevs(Matrix)} or this method.
-     * 
-     * 
-     * @param visionRobotPoseM ters The pose of the robot as measured by
-     *                         he vision camera.
-     * @param timestampSeconds The timestamp of the vision measurement in sec
-     *                         nds.
-     *                         am visionMeasurementStdDevs Standard devi
-     *                         tions of the vision pose measurement
-     *                         in the form [x, y, theta]ᵀ, with units in meters and
-     *                         radians.
+     *
+     * @param visionRobotPoseMeters The pose of the robot as measured by the vision camera.
+     * @param timestampSeconds The timestamp of the vision measurement in seconds.
+     * @param visionMeasurementStdDevs Standard deviations of the vision pose measurement
+     *     in the form [x, y, theta]ᵀ, with units in meters and radians.
      */
     @Override
-            ic void addVisionMeasurement(
-            Pose2d visionRobotPoseMe
-            double timestampSeconds,    Matrix<N3, N1> visionMeasurementStdDevs
+    public void addVisionMeasurement(
+        Pose2d visionRobotPoseMeters,
+        double timestampSeconds,
+        Matrix<N3, N1> visionMeasurementStdDevs
     ) {
-                
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
     }
 
@@ -405,9 +362,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * Return the pose at a given timestamp, if the buffer is not empty.
      *
      * @param timestampSeconds The timestamp of the pose in seconds.
-     * 
-     * @return The pose at the given timestamp (or Optional.empty() if the buffer is
-     *         empty).
+     * @return The pose at the given timestamp (or Optional.empty() if the buffer is empty).
      */
     @Override
     public Optional<Pose2d> samplePoseAt(double timestampSeconds) {
