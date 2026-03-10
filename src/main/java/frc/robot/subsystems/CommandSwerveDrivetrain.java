@@ -247,9 +247,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                                 .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading)));
     }
 
-    public Command stopRobot() {
-        return Commands.run(() -> {this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));});
-    }
 
     public Pose2d getPose() {
         return this.samplePoseAt(Utils.getCurrentTimeSeconds()).orElse(new Pose2d());
