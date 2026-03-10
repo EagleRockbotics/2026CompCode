@@ -33,6 +33,11 @@ public class Robot extends TimedRobot {
     m_robotContainer = new RobotContainer();
   }
 
+  @Override
+  public void robotInit() {
+    // m_robotContainer.publishAutoChooser();
+  }
+
   /**
    * This function is called every 20 ms, no matter the mode. Use this for items
    * like diagnostics
@@ -60,6 +65,7 @@ public class Robot extends TimedRobot {
   public void disabledInit() {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
+      m_robotContainer.resetAutoRoutines();
     }
     if (m_teleopCommand != null) {
       m_teleopCommand.cancel();
@@ -74,6 +80,14 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
+  }
+
+  @Override
+  public void autonomousInit() {
+    m_autonomousCommand = m_robotContainer.getAutoCommand();
+    if (m_autonomousCommand != null) {
+      m_autonomousCommand.schedule();
+    }
   }
 
   @Override

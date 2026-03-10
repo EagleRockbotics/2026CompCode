@@ -5,10 +5,12 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.function.Supplier;
+import java.util.ArrayList;
 
 import choreo.auto.AutoChooser;
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
@@ -20,11 +22,13 @@ import frc.robot.RobotContainer;
 public class AutoHandlingSubsystem extends SubsystemBase {
     private final AutoFactory autoFactory;
     private final AutoChooser chooser;
+    private final ArrayList<AutoRoutine> routineList;
 
     public AutoHandlingSubsystem(CommandSwerveDrivetrain drive) {
         autoFactory = new AutoFactory(drive::getPose, drive::resetPose, drive::followTrajectory,
                 Constants.AutonomousConstants.kEnableAllianceFlipping, drive);
-        chooser = new AutoChooser();
+        chooser = new AutoChooser("uhhh ummm uhuhuhuh");
+        routineList = new ArrayList<AutoRoutine>();
     }
 
     public void setupAutoReflection(RobotContainer container, Subsystem... subsystems) {
@@ -50,7 +54,7 @@ public class AutoHandlingSubsystem extends SubsystemBase {
             // Gets a list of methods in the class
             Method[] methods = sType.getMethods();
             for (Method m : methods) {
-                if (m.getParameterTypes() == factoryClass && m.getReturnType() == Command.class) {
+                if (m.getReturnType() == Command.class) {
                     try {
                         autoFactory.bind(m.getName(), (Command) m.invoke(s, autoFactory));
                     } catch (Exception e) {
@@ -60,13 +64,17 @@ public class AutoHandlingSubsystem extends SubsystemBase {
             }
         }
         for (Method m : container.getClass().getMethods()) {
-            if (m.getParameterTypes() == factoryClass && m.getReturnType() == AutoRoutine.class) {
+            for (Class<?> c : m.getParameterTypes()) {
+                System.out.println(c.getName() + " is " + c);
+            }
+            if (m.getReturnType() == AutoRoutine.class) {
                 try {
                     chooser.addRoutine(m.getName(), new Supplier<AutoRoutine>() {
                         public AutoRoutine get() {
                             AutoRoutine routine;
                             try {
                                 routine = (AutoRoutine) m.invoke(container, autoFactory);
+                                routineList.add(routine);
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 routine = autoFactory.newRoutine("fix me 🥺🥺🥺");
@@ -79,8 +87,20 @@ public class AutoHandlingSubsystem extends SubsystemBase {
                 }
             }
         }
-        SmartDashboard.putData(chooser);
-        RobotModeTriggers.autonomous().whileTrue(chooser.selectedCommandScheduler());
+
     }
 
+    public void publishChooser() {
+        SmartDashboard.putData("Auto Chooser", chooser);
+    }
+
+    public Command getAutonomousCommand() {
+        return chooser.selectedCommand();
+    }
+
+    public void resetRoutines() {
+        for (AutoRoutine routine : routineList) {
+            routine.reset();
+        }
+    }
 }
