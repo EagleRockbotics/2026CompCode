@@ -63,7 +63,6 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final Pigeon2 m_gyro = new Pigeon2(Constants.kPigeonID);
-  private final Pigeon2 m_gyro = new Pigeon2(Constants.kPigeonID);
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   private final CommandXboxController driveStick = new CommandXboxController(
       Constants.OperatorConstants.kDriverControllerPort);
@@ -87,9 +86,7 @@ public class RobotContainer {
   private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
   private final Telemetry logger = new Telemetry(MaxSpeed);
-  private final Telemetry logger = new Telemetry(MaxSpeed);
 
-  private final CommandXboxController joystick = new CommandXboxController(0);
   private final CommandXboxController joystick = new CommandXboxController(0);
 
   /**
@@ -203,14 +200,6 @@ public class RobotContainer {
     routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd()));
     traj.done().onTrue(m_drivetrain.goToEndPose(traj));
     return routine;
-  }
-
-  public void publishAutoChooser() {
-    this.m_autoHandler.publishChooser();
-  }
-
-  public void resetAutoRoutines() {
-    this.m_autoHandler.resetRoutines();
   }
 
   public void publishAutoChooser() {
