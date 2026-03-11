@@ -12,6 +12,7 @@ import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import choreo.auto.AutoTrajectory;
 import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Nat;
@@ -31,6 +32,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -215,8 +217,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     ) {
         super(drivetrainConstants, odometryUpdateFrequency, odometryStandardDeviation, visionStandardDeviation, modules);
         TrapezoidProfile.Constraints yagslConstraints = new TrapezoidProfile.Constraints(
-            11.321,
-            2 * 11.321 * Constants.SwerveConstants.kAngularAccelerationFactor);
+            2 * Math.PI,
+            2 * Math.PI * Constants.SwerveConstants.kAngularAccelerationFactor);
         thetaController = new ProfiledPIDController(Constants.ChoreoConstants.kP_theta,
         Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta, yagslConstraints);
         thetaController.enableContinuousInput(-Math.PI, Math.PI);
@@ -247,17 +249,43 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                                 .withRotationalRate(sample.omega + thetaController.calculate(pose.getRotation().getRadians(), sample.heading)));
     }
 
-    public Command stopRobot() {
-        return Commands.run(() -> {this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));});
-    }
 
     public Pose2d getPose() {
         return this.samplePoseAt(Utils.getCurrentTimeSeconds()).orElse(new Pose2d());
     }
 
-    public void resetThetaController() {
-        thetaController.reset(0);
+    public Command goToEndPose(AutoTrajectory traj) {
+       try {
+           return Commands.run(() -> {
+               Pose2d pose = this.getPose();
+               Pose2d end = traj.getFinalPose().get();
+               this.setControl(new SwerveRequest.FieldCentric()
+                       .withVelocityX(Constants.ChoreoConstants.xController.calculate(pose.getX(), end.getX()))
+                       .withVelocityY(Constants.ChoreoConstants.yController.calculate(pose.getY(), end.getY()))
+                       .withRotationalRate(thetaController.calculate(pose.getRotation().getRadians(),
+                               end.getRotation().getRadians())));
+           });
+       } catch (Exception e) {
+        return Commands.none();
+       }
     }
+
+
+      
+
+
+  
+   public Command stopRobot() {
+       return Commands.run(() -> {
+           this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));
+       });
+   }
+
+
+   public void resetThetaController() {
+    this.thetaController.reset(0, 0);
+   }
+
 
     /**
      * Runs the SysId Quasistatic test in the given direction for the routine
