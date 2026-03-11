@@ -41,6 +41,12 @@ public final class Constants {
     public static final double kD_theta = 0.01;
   }
 
+  public static class PoseEstimationConstants {
+    public static final double kXStdev = 0.9;
+    public static final double kYStdev = 0.9;
+    public static final double kHeadingStdev = 67000; // set to a large number because we have gyro for a reason
+  }
+
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
   }

@@ -45,6 +45,13 @@ public record ChoreoTraj(
 	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
 	    new Pose2d(1, 1, Rotation2d.fromRadians(3.142))
 	);
+	public static final ChoreoTraj HeadingStdevTuning = new ChoreoTraj(
+	    "HeadingStdevTuning",
+	    OptionalInt.empty(),
+	    8.15069,
+	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
+	    new Pose2d(0, 0, Rotation2d.fromRadians(0))
+	);
 
     /**
      * A map between trajectory names and their corresponding data.
@@ -53,7 +60,8 @@ public record ChoreoTraj(
     public static final Map<String, ChoreoTraj> ALL_TRAJECTORIES = Map.ofEntries(
     	Map.entry("NewPath", NewPath),
 		Map.entry("Spinny", Spinny),
-		Map.entry("MovingSpinny", MovingSpinny)
+		Map.entry("MovingSpinny", MovingSpinny),
+		Map.entry("HeadingStdevTuning", HeadingStdevTuning)
     );
 
     /**
