@@ -237,7 +237,8 @@ public class RobotContainer {
   public AutoRoutine visionHeadingStdevTuning(AutoFactory factory) {
     AutoRoutine routine = factory.newRoutine("visionHeadingStdevTuning");
     AutoTrajectory traj = ChoreoTraj.HeadingStdevTuning.asAutoTraj(routine);
-    routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd(), m_drivetrain.stopRobot()));
+    routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd()));
+    traj.done().onTrue(m_drivetrain.goToEndPose(traj));
     return routine;
   }
   
