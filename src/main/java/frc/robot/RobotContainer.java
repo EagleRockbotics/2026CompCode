@@ -57,7 +57,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
  * "declarative" paradigm, very little robot logic should actually be handled in
  * the {@link Robot}
  * periodic methods (other than the scheduler calls). Instead, the structure of
- * the robot (including
+ * the robot (including`
  * subsystems, commands, and trigger mappings) should be declared here.
  */
 public class RobotContainer {

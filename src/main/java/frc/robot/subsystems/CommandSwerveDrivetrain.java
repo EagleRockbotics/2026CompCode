@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.Rotation;
 import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Volts;
 
@@ -18,6 +19,8 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -268,11 +271,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
        }
     }
 
+    public Command driveComponentFacingPoint(Supplier<ChassisSpeeds> speeds, Pose2d pointFacing, Translation2d componentOffset) {
+        return run (() -> {
+            Rotation2d currentAngle = pointFacing.minus(this.getPose()).getTranslation().getAngle().minus(this.getPose().getRotation());
 
-      
+            this.setControl(new SwerveRequest.FieldCentricFacingAngle());
 
+        });
+    }
 
-  
    public Command stopRobot() {
        return Commands.run(() -> {
            this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));

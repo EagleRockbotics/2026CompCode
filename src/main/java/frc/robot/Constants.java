@@ -5,6 +5,9 @@
 package frc.robot;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
@@ -31,6 +34,12 @@ public final class Constants {
     public static final double kDeadband = 0.1;
     public static final double kAngularAccelerationFactor = 4;
     public static final String kCurrentRobot = "comp2025";
+  }
+
+  public static class SwerveUtilConstants {
+    public static Translation2d getShooterOffset (Rotation2d robotOrientation) {
+      return new Translation2d(0, 1).rotateBy(robotOrientation);
+    }
   }
 
   public static class ChoreoConstants {
