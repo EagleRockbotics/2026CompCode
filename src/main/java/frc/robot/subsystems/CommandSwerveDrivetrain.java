@@ -18,6 +18,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import choreo.auto.AutoTrajectory;
 import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -295,6 +296,22 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             .withRotationalRate(0));
 
         });
+    }
+
+    //Returns robot angle offset and then shooter exit velocity (!!! not rpm). takes in exit velocity in m/s
+    public Pair<Double, Double> calculateTrickshot(double desiredExitVelocity, Translation2d targetPoint) {
+        Translation2d robotVelocity = new Translation2d(this.getState().Speeds.vxMetersPerSecond, this.getState().Speeds.vyMetersPerSecond);
+        Translation2d robotToTarget = targetPoint.minus(this.getPose().getTranslation());
+        Translation2d unitInTargetDirection = robotToTarget.div(robotToTarget.getNorm());
+        Translation2d unitInOrthDirection = unitInTargetDirection.rotateBy(new Rotation2d(-Math.PI/2));
+
+        double robotVelocityTowardsPoint = robotVelocity.dot(unitInTargetDirection);
+        double robotVelocityOrthToPoint = robotVelocity.dot(unitInOrthDirection);
+        double newExitVelocity = Math.sqrt(Math.pow(desiredExitVelocity - robotVelocityTowardsPoint, 2) + Math.pow(robotVelocityOrthToPoint, 2));
+        
+        double angleOffset = -Math.acos(robotVelocityOrthToPoint/newExitVelocity);
+
+        return new Pair<Double,Double>(angleOffset, newExitVelocity);
     }
 
     public Command stopRobot() {
