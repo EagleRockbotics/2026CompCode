@@ -303,7 +303,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         Translation2d robotVelocity = new Translation2d(this.getState().Speeds.vxMetersPerSecond, this.getState().Speeds.vyMetersPerSecond);
         Translation2d robotToTarget = targetPoint.minus(this.getPose().getTranslation());
         Translation2d unitInTargetDirection = robotToTarget.div(robotToTarget.getNorm());
-        Translation2d unitInOrthDirection = unitInTargetDirection.rotateBy(new Rotation2d(-Math.PI/2));
+        Translation2d unitInOrthDirection = unitInTargetDirection.rotateBy(new Rotation2d(Math.PI/2));
 
         double robotVelocityTowardsPoint = robotVelocity.dot(unitInTargetDirection);
         double robotVelocityOrthToPoint = robotVelocity.dot(unitInOrthDirection);
