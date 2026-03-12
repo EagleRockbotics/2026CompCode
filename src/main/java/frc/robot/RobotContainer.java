@@ -13,6 +13,7 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.AutoHandlingSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.LimelightSubsystem;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
@@ -33,6 +34,8 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -44,6 +47,7 @@ import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -70,6 +74,7 @@ public class RobotContainer {
       Constants.OperatorConstants.kHelperControllerPort);
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
+  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
 
   // Code copied from CTRE Swerve template
   private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top
@@ -98,7 +103,10 @@ public class RobotContainer {
     // TODO: Whenever you make a new subsytem, put it in this function.
     m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
     m_autoHandler.publishChooser();
-    m_autoHandler.publishChooser();
+    
+    CommandScheduler.getInstance().schedule(
+      Commands.repeatingSequence(setRobotLimelightOrientationCommand(), addVisionMeasurementCommand())
+    );
   }
 
   /**
@@ -177,6 +185,31 @@ public class RobotContainer {
     );
   }
 
+  public Command setRobotLimelightOrientationCommand() {
+    return Commands.runOnce(
+      () -> {m_limelightSubsystem.setRobotOrientation();}
+    );
+  }
+
+  public Command addVisionMeasurementCommand() {
+    return Commands.runOnce(
+      () -> {
+        m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(
+          Constants.PoseEstimationConstants.kVisionXStdDev, // scale later
+          Constants.PoseEstimationConstants.kVisionYStdDev, // scale later
+          Constants.PoseEstimationConstants.kVisionHeadingStdDev
+        ));
+        LimelightHelpers.PoseEstimate poseEstimate = m_limelightSubsystem.getPoseEstimate();
+        if (!m_limelightSubsystem.rejectUpdate()) {
+          m_drivetrain.addVisionMeasurement(
+             poseEstimate.pose,
+             poseEstimate.timestampSeconds
+          );
+        }
+      }
+    );
+  }
+
   public AutoRoutine driveTest(AutoFactory factory) {
     AutoRoutine routine = factory.newRoutine("driveTest");
     AutoTrajectory driveFwdOneMeter = ChoreoTraj.NewPath.asAutoTraj(routine);
@@ -201,6 +234,15 @@ public class RobotContainer {
     traj.done().onTrue(m_drivetrain.goToEndPose(traj));
     return routine;
   }
+  
+  public AutoRoutine visionHeadingStdevTuning(AutoFactory factory) {
+    AutoRoutine routine = factory.newRoutine("visionHeadingStdevTuning");
+    AutoTrajectory traj = ChoreoTraj.HeadingStdevTuning.asAutoTraj(routine);
+    routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd()));
+    traj.done().onTrue(m_drivetrain.goToEndPose(traj));
+    return routine;
+  }
+  
 
   public void publishAutoChooser() {
     this.m_autoHandler.publishChooser();

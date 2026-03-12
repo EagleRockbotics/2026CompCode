@@ -7,6 +7,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 
 /**
  * The methods in this class are called automatically corresponding to each
@@ -18,7 +19,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
   private Command m_teleopCommand;
-
+  
   private final RobotContainer m_robotContainer;
 
   /**
@@ -76,7 +77,6 @@ public class Robot extends TimedRobot {
   public void disabledPeriodic() {
   }
 
-
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
@@ -84,6 +84,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousInit() {
+    
     m_autonomousCommand = m_robotContainer.getAutoCommand();
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
@@ -110,7 +111,6 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-
   }
 
   @Override

@@ -54,6 +54,15 @@ public final class Constants {
     public static final double kD_theta = 0.01;
   }
 
+  public static class PoseEstimationConstants {
+    public static final double kOdometryXStdDev = 0.1;
+    public static final double kOdometryYStdDev = 0.1;
+    public static final double kOdometryHeadingStdDev = 0.001; // set to a small number because we have gyro for a reason
+    public static final double kVisionXStdDev = 0.9;
+    public static final double kVisionYStdDev = 0.9;
+    public static final double kVisionHeadingStdDev = 67000; // set to a large number because we have gyro for a reason
+  }
+
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
   }
