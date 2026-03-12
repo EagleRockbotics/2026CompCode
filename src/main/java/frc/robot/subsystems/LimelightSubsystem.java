@@ -87,6 +87,9 @@ public class LimelightSubsystem extends SubsystemBase {
     if (Math.abs(m_gyro.getAngularVelocityZDevice().getValueAsDouble()) > 360) {
       doRejectUpdate = true;
     }
+    if (LimelightHelpers.getTargetCount("limelight-rock") == 0) {
+      doRejectUpdate = true;
+    }
     return doRejectUpdate;
   }
 }

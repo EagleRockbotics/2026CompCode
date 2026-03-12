@@ -35,6 +35,7 @@ import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
@@ -194,9 +195,9 @@ public class RobotContainer {
     return Commands.runOnce(
       () -> {
         m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(
-          Constants.PoseEstimationConstants.kXStdev, // scale later
-          Constants.PoseEstimationConstants.kYStdev, // scale later
-          Constants.PoseEstimationConstants.kHeadingStdev
+          Constants.PoseEstimationConstants.kVisionXStdDev, // scale later
+          Constants.PoseEstimationConstants.kVisionYStdDev, // scale later
+          Constants.PoseEstimationConstants.kVisionHeadingStdDev
         ));
         LimelightHelpers.PoseEstimate poseEstimate = m_limelightSubsystem.getPoseEstimate();
         if (!m_limelightSubsystem.rejectUpdate()) {
