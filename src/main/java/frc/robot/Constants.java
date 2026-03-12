@@ -25,6 +25,10 @@ public final class Constants {
   public static final String kLimelightName = "limelight-rock";
   public static final int kPigeonID = 14;
 
+  public static class FieldConstants {
+    public static final Translation2d kHubPosition = new Translation2d(0, 0);
+  }
+
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
     public static final int kHelperControllerPort = 0;
@@ -34,12 +38,12 @@ public final class Constants {
     public static final double kDeadband = 0.1;
     public static final double kAngularAccelerationFactor = 4;
     public static final String kCurrentRobot = "comp2025";
+
+    public static final double kAirResistanceFactor = 0;
   }
 
   public static class SwerveUtilConstants {
-    public static Translation2d getShooterOffset (Rotation2d robotOrientation) {
-      return new Translation2d(0, 1).rotateBy(robotOrientation);
-    }
+    public static double kShooterDistanceFromCenter = 1;
   }
 
   public static class ChoreoConstants {
