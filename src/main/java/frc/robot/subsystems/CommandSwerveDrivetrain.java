@@ -285,16 +285,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     @SuppressWarnings("static-access")
-    public Command driveShooterFacingHub() {
+    public Command driveShooterFacingPoint(Translation2d targetPoint) {
         return run(() -> {
             Pose2d currentPose = this.getPose();
             Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-            Translation2d relativeHubPosition = currentPosition.plus(Constants.FieldConstants.kHubPosition);
+            Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
             
-            double x = relativeHubPosition.getX()==0 ? 0.001 : relativeHubPosition.getX();
-            double y = relativeHubPosition.getY();
-            double targetAngle = // evil ass equation
-                Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(relativeHubPosition.getX())*90;
+            double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
+            double y = relativeTargetPosition.getY();
+            double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
             
             this.setControl(new SwerveRequest.FieldCentricFacingAngle().withTargetDirection(new Rotation2d().fromDegrees(targetAngle)));
         });
