@@ -4,11 +4,13 @@ import static edu.wpi.first.units.Units.Rotation;
 import static edu.wpi.first.units.Units.Second;
 import static edu.wpi.first.units.Units.Volts;
 
+import java.lang.invoke.ConstantCallSite;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
+import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
@@ -280,7 +282,22 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         });
     }
 
-   public Command stopRobot() {
+    public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, double yDistance, Pose2d sensorOffset) {
+        return run( () -> {
+            double xDistanceFromSensor = xDistance - sensorOffset.getX();
+            double yDistanceFromSensor = yDistance - sensorOffset.getY();
+            double distanceTriangleBaseAngle = (Math.PI/2) - sensorOffset.getRotation().getRadians();
+            double distanceTriangleHypotenuse = sensor.getDistance().getValueAsDouble();
+
+            this.setControl(new SwerveRequest.RobotCentric()
+            .withVelocityX(-Constants.ChoreoConstants.xController.calculate(xDistanceFromSensor, Math.cos(distanceTriangleBaseAngle)*distanceTriangleHypotenuse))
+            .withVelocityY(-Constants.ChoreoConstants.yController.calculate(yDistanceFromSensor, Math.sin(distanceTriangleBaseAngle)*distanceTriangleHypotenuse))
+            .withRotationalRate(0));
+
+        });
+    }
+
+    public Command stopRobot() {
        return Commands.run(() -> {
            this.setControl(new SwerveRequest.FieldCentric().withVelocityX(0).withVelocityY(0).withRotationalRate(0));
        });
