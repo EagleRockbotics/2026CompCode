@@ -26,7 +26,8 @@ public final class Constants {
   public static final int kPigeonID = 14;
 
   public static class FieldConstants {
-    public static final Translation2d kHubPosition = new Translation2d(0, 0);
+    public static final Translation2d kHubPosition = new Translation2d(0, 0); // TODO: Configure
+    public static final double kHubHeight = 0; // Todo: height of hub opening
   }
 
   public static class OperatorConstants {
@@ -65,5 +66,15 @@ public final class Constants {
 
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
+  }
+
+  public static class ShooterConstants {
+    public static final double kShooterHeight = 0; // TODO: height of ball as it leaves shooter
+    public static final double kShooterAngle = 0; // TODO: angle
+    public static final int kDriveMotorId = 0; // TODO: Configure
+    public static final double kP = 0;
+    public static final double kI = 0;
+    public static final double kD = 0;
+    public static final double kF = 0;
   }
 }

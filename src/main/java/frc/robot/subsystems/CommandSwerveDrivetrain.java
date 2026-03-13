@@ -19,6 +19,7 @@ import choreo.auto.AutoTrajectory;
 import choreo.trajectory.SwerveSample;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Nat;
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -274,15 +275,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
        } catch (Exception e) {
         return Commands.none();
        }
-    }
-
-    public Command driveComponentFacingPoint(Supplier<ChassisSpeeds> speeds, Pose2d pointFacing, Translation2d componentOffset) {
-        return run (() -> {
-            Rotation2d currentAngle = pointFacing.minus(this.getPose()).getTranslation().getAngle().minus(this.getPose().getRotation());
-
-            this.setControl(new SwerveRequest.FieldCentricFacingAngle());
-
-        });
     }
 
     @SuppressWarnings("static-access")
