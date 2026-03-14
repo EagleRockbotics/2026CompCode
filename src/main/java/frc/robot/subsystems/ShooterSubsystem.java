@@ -10,6 +10,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkFlexConfig;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -19,6 +20,7 @@ import frc.robot.Constants;
 import frc.robot.LimelightHelpers;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 
+import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.ClosedLoopSlot;
@@ -30,10 +32,16 @@ public class ShooterSubsystem extends SubsystemBase {
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
   private final CommandSwerveDrivetrain m_drivetrain;
   private final LimelightSubsystem m_limelightSubsystem;
-  private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future
+  private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future?
+  private final int mode;
+  private final boolean aimWithRobotVelocity = false; // TODO: set during testing & stuff
+  // mode 0: manual aim, uses limelight for pose calculation
+  // mode 1: aims robot directly at hub, uses combined vison & odometry measurement for pose calculation
+  // mode 2: aims shooter at hub (accounting for robot motion if aimWithRobotVelocity), uses combined measurements
 
   @SuppressWarnings("removal")
-  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, LimelightSubsystem limelight) {
+  public ShooterSubsystem(int _mode, CommandSwerveDrivetrain drivetrain, LimelightSubsystem limelight) {
+    mode = _mode;
     m_motorConfig.closedLoop.p(Constants.ShooterConstants.kP)
       .i(Constants.ShooterConstants.kI)
       .d(Constants.ShooterConstants.kD)
@@ -62,7 +70,7 @@ public class ShooterSubsystem extends SubsystemBase {
     Pose2d currentPose = m_drivetrain.getState().Pose;
     Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
     
-    Translation2d actualRelativeHubPosition = currentPosition.minus(Constants.FieldConstants.kHubPosition);
+    Translation2d actualRelativeHubPosition = Constants.FieldConstants.kHubPosition.minus(currentPosition);
     double actualHubDistance = actualRelativeHubPosition.getNorm();
     double flightTime = calculateFlightTime(actualHubDistance);
     
@@ -87,11 +95,59 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public Command shooterCommand() {
-    double RPMSetpoint = calculateRPMFromVelocity(calculateTargetVelocity(getLimelightDistanceFromHub()));
-    return Commands.run(() -> {
+    double hubDistance;
+    switch (mode) {
+      case 2:
+        hubDistance = getEffectiveDistanceFromHub();
+        break;
+      case 1:
+        hubDistance = getCombinedDistanceFromHub();
+        break;
+      default:
+        hubDistance = getLimelightDistanceFromHub();
+        break;
+    }
+    double RPMSetpoint = calculateRPMFromVelocity(calculateTargetVelocity(hubDistance));
+
+    return Commands.repeatingSequence(getAimCommand(), Commands.run(() -> {
       if (m_controller.getBButton()) {
         m_motorController.setSetpoint(RPMSetpoint, ControlType.kVelocity, ClosedLoopSlot.kSlot0);
       }
+    }));
+  }
+
+  @SuppressWarnings("static-access")
+  public Command getAimCommand() {
+    Pose2d currentPose = m_drivetrain.getState().Pose;
+    Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
+    Translation2d actualRelativeHubPosition = Constants.FieldConstants.kHubPosition.minus(currentPosition);
+
+    double x = actualRelativeHubPosition.getX();
+    double y = actualRelativeHubPosition.getY();
+    double targetAngle;
+
+    switch (mode) {
+      case 2:
+        if (aimWithRobotVelocity) {
+          double flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
+          ChassisSpeeds currentChassisSpeeds = m_drivetrain.getState().Speeds;
+          Translation2d effectiveRelativeHubPosition = new Translation2d(
+            flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
+            flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
+          );
+          x = effectiveRelativeHubPosition.getX();
+          y = effectiveRelativeHubPosition.getY();
+        }
+        targetAngle = Math.toDegrees(Math.atan(y/x) + Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/(Math.sqrt(Math.pow(x, 2)+Math.pow(y, 2)))) - (Math.signum(x)*Math.PI/2));
+        break;
+      case 1:
+        targetAngle = Math.toDegrees(Math.atan(y/x));
+        break;
+      default:
+        return Commands.run(() -> {});
+    }
+    return Commands.run(() -> {
+      m_drivetrain.setControl(new SwerveRequest.FieldCentricFacingAngle().withTargetDirection(new Rotation2d().fromDegrees(targetAngle)));
     });
   }
 
