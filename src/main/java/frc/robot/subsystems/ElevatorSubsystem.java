@@ -22,7 +22,7 @@ public class ElevatorSubsystem extends SubsystemBase {
 
   private final SparkFlex m_motor = new SparkFlex(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
   private final Servo m_bottomServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
-  private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
+  private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kBottomServoChannel);
 
   private final RelativeEncoder m_encoder = m_motor.getEncoder();
 

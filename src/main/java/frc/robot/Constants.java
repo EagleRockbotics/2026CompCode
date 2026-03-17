@@ -69,6 +69,26 @@ public final class Constants {
   }
 
   public static class ElevatorConstants {
+    public static final int kElevatorMotorID = 0;
+    public static final int kTopServoChannel = 0;
+    public static final int kBottomServoChannel = 0;
+
+    public static final double kMaxVelocity = 0;
+    public static final double kMaxAcceleration = 0;
+    public static final double kP = 0;
+    public static final double kI = 0;
+    public static final double kD = 0;
+    public static final double kS = 0;
+    public static final double kV = 0;
+    public static final double kG = 0;
+
+    public static final double kPosition1 = 0;
+    public static final double kBottomPosition = 0;
+
+    public static final double kServoDownAngle = 0;
+    public static final double kServoUpAngle = 0;
+
+
 
   }
 
