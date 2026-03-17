@@ -14,6 +14,7 @@ import frc.robot.subsystems.AutoHandlingSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
@@ -21,10 +22,12 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import java.io.File;
 import java.lang.constant.DirectMethodHandleDesc;
+import java.lang.invoke.ConstantCallSite;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.function.Supplier;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -34,6 +37,7 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import choreo.auto.AutoFactory;
 import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -75,6 +79,8 @@ public class RobotContainer {
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
   private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
+  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(1, m_drivetrain, m_limelightSubsystem);
+  private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand(driveStick);
 
   // Code copied from CTRE Swerve template
   private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top
@@ -92,7 +98,7 @@ public class RobotContainer {
 
   private final Telemetry logger = new Telemetry(MaxSpeed);
 
-  private final CommandXboxController joystick = new CommandXboxController(0);
+  private final CommandXboxController joystick = driveStick;
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -159,15 +165,21 @@ public class RobotContainer {
 
   public Command getTeleopCommand() {
     return Commands.parallel(
-        m_drivetrain.applyRequest(() -> drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier) // Drive
+        m_drivetrain.applyRequest(this::getDriveRequest), m_shooterPair.getFirst());
+  }
+
+  private SwerveRequest getDriveRequest() {
+          if (joystick.rightBumper().getAsBoolean()) {
+            return m_shooterPair.getSecond().get();
+          }
+          return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier) // Drive
                                                                                                                      // forward
                                                                                                                      // with
                                                                                                                      // negative
                                                                                                                      // Y
                                                                                                                      // (forward)
             .withVelocityY(-joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
-            .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
-        ));
+            .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
   }
 
   public Command getTestCommand() {

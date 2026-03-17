@@ -278,8 +278,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     @SuppressWarnings("static-access")
-    public Command driveShooterFacingPoint(Translation2d targetPoint) {
-        return run(() -> {
+    public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint) {
             Pose2d currentPose = this.getPose();
             Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
             Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
@@ -288,8 +287,24 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             double y = relativeTargetPosition.getY();
             double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
             
-            this.setControl(new SwerveRequest.FieldCentricFacingAngle().withTargetDirection(new Rotation2d().fromDegrees(targetAngle)));
-        });
+            return new SwerveRequest.FieldCentricFacingAngle()
+            .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
+            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta);
+    }
+
+    @SuppressWarnings("static-access")
+    public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset) {
+            Pose2d currentPose = this.getPose();
+            Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
+            Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
+            
+            double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
+            double y = relativeTargetPosition.getY();
+            double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
+            
+            return new SwerveRequest.FieldCentricFacingAngle()
+            .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
+            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta);
     }
 
     public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, double yDistance, Pose2d sensorOffset) {
@@ -318,7 +333,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         double robotVelocityOrthToPoint = robotVelocity.dot(unitInOrthDirection)*Constants.SwerveConstants.kAirResistanceFactor;
         double newExitVelocity = Math.sqrt(Math.pow(desiredExitVelocity - robotVelocityTowardsPoint, 2) + Math.pow(robotVelocityOrthToPoint, 2));
         
-        double angleOffset = -Math.asin(robotVelocityOrthToPoint/newExitVelocity);
+        double angleOffset = -Math.acos(robotVelocityOrthToPoint/newExitVelocity);
 
         return new Pair<Double,Double>(angleOffset, newExitVelocity);
     }
