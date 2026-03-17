@@ -68,6 +68,43 @@ public final class Constants {
     public static final boolean kEnableAllianceFlipping = true;
   }
 
+  public static class ShooterConstants {
+    public static final double kShooterHeight = 0; // TODO: height of ball as it leaves shooter
+    public static final double kShooterAngle = 0; // TODO: angle
+    public static final int kDriveMotorId = 0; // TODO: Configure
+    public static double kShooterDistanceFromCenter = 1;
+    public static final double kP = 0;
+    public static final double kI = 0;
+    public static final double kD = 0;
+    public static final double kF = 0;
+  }
+
+  public static class IntakeConstants {
+    public static final double kdt = 0.02;
+    //Motor ID's
+    public static final int k_RightIntakeId = 0;
+    public static final int k_LeftIntakeId = 0;
+    public static final int k_RightSpinId = 0;
+    public static final int k_LeftSpinId = 0;
+    //encoder ID's
+    public static final int k_RightEncoderId = 0;
+    public static final int k_LeftEncoderId = 0;
+    //Motor Power
+    public static final double k_IntakePower = 0;
+    public static final double k_SpinPower = 0;
+    //PID Constants
+    public static final double k_Kp = 0;
+    public static final double k_Kd = 0;
+    //Arm Feedwater Constants
+    public static final double k_Ks = 0;
+    public static final double k_Kg = 0;
+    public static final double k_Kv = 0;
+
+    public static final double k_EncoderThreshold = 0;
+
+    public static final double k_TargetAngle = 90;
+    }
+
   public static class ElevatorConstants {
     public static final int kElevatorMotorID = 0;
     public static final int kLeftServoChannel = 0;
