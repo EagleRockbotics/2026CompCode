@@ -12,7 +12,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide
  * numerical or boolean
- * constants. This class should not be used for any other purpose. All constants
+ * constants. wow who would have thought? This class should not be used for any other purpose. All constants
  * should be declared
  * globally (i.e. public static). Do not put anything functional in this class.
  *
@@ -67,24 +67,37 @@ public final class Constants {
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
   }
+
   public static class ElevatorConstants {
-    public static final int kElevatorMotorID = -1;
-    public static final int kBottomServoChannel = -1;
-    public static final int kTopServoChannel = -1;
-    public static final double kServoUpAngle = 0.0;
-    public static final double kServoDownAngle = 90.0;
-    public static final double kBottomPosition = 0;
-    public static final double kPosition1 = 1.0;
-    public static final double kPosition2 = 2.0;
-    public static final double kElevtorPositionOffset = 0.1;
-    public static final double kMaxVelocity = 10.0;
-    public static final double kMaxAcceleration = 20.0;
-    public static final double kS = 0.0;
-    public static final double kG = 0.0;
-    public static final double kV = 0.0;
-    public static final double kP = 0.0;
-    public static final double kI = 0.0;
-    public static final double kD = 0.0;
-    public static final double kdt = 0.02;
+
   }
+
+  public static class ShooterConstants {
+  }
+
+  public static class IntakeConstants {
+    public static final double kdt = 0.02;
+    //Motor ID's
+    public static final int k_RightIntakeId = 0;
+    public static final int k_LeftIntakeId = 0;
+    public static final int k_RightSpinId = 0;
+    public static final int k_LeftSpinId = 0;
+    //encoder ID's
+    public static final int k_RightEncoderId = 0;
+    public static final int k_LeftEncoderId = 0;
+    //Motor Power
+    public static final double k_IntakePower = 0;
+    public static final double k_SpinPower = 0;
+    //PID Constants
+    public static final double k_Kp = 0;
+    public static final double k_Kd = 0;
+    //Arm Feedwater Constants
+    public static final double k_Ks = 0;
+    public static final double k_Kg = 0;
+    public static final double k_Kv = 0;
+
+    public static final double k_EncoderThreshold = 0;
+
+    public static final double k_TargetAngle = 90;
+    }
 }
