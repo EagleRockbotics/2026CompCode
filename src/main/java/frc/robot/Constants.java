@@ -67,15 +67,24 @@ public final class Constants {
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
   }
-
-  public static class ShooterConstants {
-    public static final double kShooterHeight = 0; // TODO: height of ball as it leaves shooter
-    public static final double kShooterAngle = 0; // TODO: angle
-    public static final int kDriveMotorId = 0; // TODO: Configure
-    public static double kShooterDistanceFromCenter = 1;
-    public static final double kP = 0;
-    public static final double kI = 0;
-    public static final double kD = 0;
-    public static final double kF = 0;
+  public static class ElevatorConstants {
+    public static final int kElevatorMotorID = -1;
+    public static final int kBottomServoChannel = -1;
+    public static final int kTopServoChannel = -1;
+    public static final double kServoUpAngle = 0.0;
+    public static final double kServoDownAngle = 90.0;
+    public static final double kBottomPosition = 0;
+    public static final double kPosition1 = 1.0;
+    public static final double kPosition2 = 2.0;
+    public static final double kElevtorPositionOffset = 0.1;
+    public static final double kMaxVelocity = 10.0;
+    public static final double kMaxAcceleration = 20.0;
+    public static final double kS = 0.0;
+    public static final double kG = 0.0;
+    public static final double kV = 0.0;
+    public static final double kP = 0.0;
+    public static final double kI = 0.0;
+    public static final double kD = 0.0;
+    public static final double kdt = 0.02;
   }
 }
