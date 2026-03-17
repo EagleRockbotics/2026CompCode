@@ -12,8 +12,8 @@ import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.Servo;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
@@ -21,61 +21,63 @@ public class ElevatorSubsystem extends SubsystemBase {
   /** Creates a new ExampleSubsystem. */
 
   private final SparkFlex m_motor = new SparkFlex(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
-  private final Servo m_bottomServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
-  private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kBottomServoChannel);
+
+  private final Servo m_leftServo = new Servo(Constants.ElevatorConstants.kLeftServoChannel);
+  private final Servo m_rightServo = new Servo(Constants.ElevatorConstants.kRightServoChannel);
+  private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
 
   private final RelativeEncoder m_encoder = m_motor.getEncoder();
 
   private final TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(Constants.ElevatorConstants.kMaxVelocity, Constants.ElevatorConstants.kMaxAcceleration);
-  private final ProfiledPIDController m_controller = new ProfiledPIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD, m_constraints);
+  private final ProfiledPIDController m_profiledController = new ProfiledPIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD, m_constraints);
   private final ElevatorFeedforward m_feedforward = new ElevatorFeedforward(Constants.ElevatorConstants.kS, Constants.ElevatorConstants.kG, Constants.ElevatorConstants.kV);
 
-  private final XboxController m_helperStick;
+  private final boolean elevatorEnabled = true;
 
   public ElevatorSubsystem() {
     m_encoder.setPosition(0);
-    m_helperStick = new XboxController(Constants.OperatorConstants.kHelperControllerPort);
   }
-  public Command teleopCommand() {
-    return run(
-      () -> {
-        if(m_helperStick.getBButtonPressed()) {
-          m_controller.setGoal(Constants.ElevatorConstants.kPosition1);
-        } else{
-          m_controller.setGoal(Constants.ElevatorConstants.kBottomPosition);
-        }
-        m_motor.setVoltage(m_controller.calculate(m_encoder.getPosition(), m_controller.getGoal())
-        + m_feedforward.calculate(m_controller.getSetpoint().velocity));
-      });
+
+  public Command raiseElevatorCommand() {
+    return Commands.run(() -> {
+      if (elevatorEnabled) {
+        m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
+      }
+    });
   }
-  public Command lowerBottomServoCommand() {
-    return runOnce(
-      () -> {
-        m_bottomServo.setAngle(Constants.ElevatorConstants.kServoDownAngle);
-      });
+  public Command lowerElevatorCommand() {
+    return Commands.run(() -> {
+      if (elevatorEnabled) {
+        m_profiledController.setGoal(Constants.ElevatorConstants.kDownPosition);
+      }
+    });
   }
-  public Command raiseBottomServoCommand() {
-    return runOnce(
-      () -> {
-        m_bottomServo.setAngle(Constants.ElevatorConstants.kServoUpAngle);
-      });
+  public Command releaseSideServosCommand() {
+    return Commands.runOnce(() -> {
+      if (elevatorEnabled) {
+        m_leftServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
+        m_rightServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
+      }
+    });
   }
-  public Command lowerTopServoCommand() {
-    return runOnce(
-      () -> {
-        m_topServo.setAngle(Constants.ElevatorConstants.kServoDownAngle);
-      });
+  public Command runTopServoCommand() {
+    return Commands.run(() -> {
+      if (elevatorEnabled) {
+        m_topServo.set(1); // because shog removed the encoder setting it to a nonzero value just makes it run
+      }
+    });
   }
-  public Command raiseTopServoCommand() {
-    return runOnce(
-      () -> {
-        m_topServo.setAngle(Constants.ElevatorConstants.kServoUpAngle);
-      });
+  public Command runElevatorCommand() {
+    return Commands.run(() -> {
+      if (elevatorEnabled) {
+        m_motor.setVoltage(m_profiledController.calculate(m_encoder.getPosition()) + m_feedforward.calculate(m_profiledController.getSetpoint().velocity));
+      }
+    });
   }
 
   @Override
   public void periodic() {
-    // This method will be called once per scheduler run
+
   }
 
   @Override
