@@ -101,6 +101,12 @@ public final class Constants {
     public static final double kI = 0;
     public static final double kD = 0;
     public static final double kF = 0;
+    
+    public static final int kIndexerBeltMotorId = 0;
+    public static final int kIndexerRollerMotorId = 0;
+
+    public static final double kIndexerBeltPower = 0.2;
+    public static final double kIndexerRollerPower = -0.2;
   }
 
   public static class IntakeConstants {
