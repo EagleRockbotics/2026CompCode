@@ -14,15 +14,19 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.XboxController.Axis;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants;
 import frc.robot.LimelightHelpers;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 
 import java.util.function.Supplier;
+
+import javax.sql.XAConnection;
 
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.revrobotics.PersistMode;
@@ -39,7 +43,13 @@ public class ShooterSubsystem extends SubsystemBase {
   private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future?
   private final int mode;
   private final boolean aimWithRobotVelocity = false; // TODO: set during testing & stuff
+  public Trigger autoAimTeleopTrigger = new Trigger(() -> {return false;});
+  public Trigger manualAimTeleopTrigger = new Trigger(() -> {return false;});
+  public Supplier<Double> xAxis = () -> {return 0d;};
+  public Supplier<Double> yAxis = () -> {return 0d;};
+
   // mode 0: manual aim, uses limelight for pose calculation
+
   // mode 1: aims robot directly at hub, uses combined vison & odometry measurement for pose calculation
   // mode 2: aims shooter at hub (accounting for robot motion if aimWithRobotVelocity), uses combined measurements
 
@@ -113,7 +123,7 @@ public class ShooterSubsystem extends SubsystemBase {
         break;
     }
     double RPMSetpoint = (mode == 4 || mode == 5) ? m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getSecond() : calculateRPMFromVelocity(calculateTargetVelocity(hubDistance));
-    joystick.rightBumper().or(joystick.leftBumper()).whileTrue(Commands.run(() -> m_driveMotor.getClosedLoopController().setSetpoint(RPMSetpoint, ControlType.kVelocity)));
+    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.run(() -> m_driveMotor.getClosedLoopController().setSetpoint(RPMSetpoint, ControlType.kVelocity)));
   }), this::getAimRequest);
     }
 
@@ -175,7 +185,9 @@ public class ShooterSubsystem extends SubsystemBase {
     }
     return new SwerveRequest.FieldCentricFacingAngle()
             .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
-            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta);
+            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
+            .withVelocityX(xAxis.get())
+            .withVelocityY(yAxis.get());
   }
 
   /**

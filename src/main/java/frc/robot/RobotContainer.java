@@ -152,6 +152,12 @@ public class RobotContainer {
 
     m_drivetrain.registerTelemetry(logger::telemeterize);
 
+    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightBumper();
+    m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftBumper();
+    m_shooterSubsystem.xAxis = () -> {return -joystick.getLeftX();};
+    m_shooterSubsystem.yAxis = () -> {return -joystick.getLeftY();};
+
+
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
     // pressed,
     // cancelling on release.
@@ -169,7 +175,7 @@ public class RobotContainer {
   }
 
   private SwerveRequest getDriveRequest() {
-          if (joystick.rightBumper().getAsBoolean()) {
+          if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean()) {
             return m_shooterPair.getSecond().get();
           }
           return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier) // Drive

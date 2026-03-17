@@ -6,6 +6,7 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel;
@@ -38,6 +39,8 @@ public class IntakeSubsystem extends SubsystemBase {
   private final int RIGHT = 1;
   private final int LEFT = 2;
 
+  public Trigger runIntakeTrigger = new Trigger(() -> {return false;});
+
 
  
   public IntakeSubsystem() {
@@ -57,7 +60,7 @@ public class IntakeSubsystem extends SubsystemBase {
         () -> {
           //Right Motor Code
           //Spin Motor Code
-          if (m_driveController.getBButton() &&
+          if (runIntakeTrigger.getAsBoolean() &&
            m_LeftEncoder.getPosition().getValueAsDouble() < Constants.IntakeConstants.k_EncoderThreshold){
             m_motorRightSpin.set(calculateMotorOutput((Constants.IntakeConstants.k_TargetAngle * Math.PI)/180, RIGHT));
             //Reverse Motor Code
