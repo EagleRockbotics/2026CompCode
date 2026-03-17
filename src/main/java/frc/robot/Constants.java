@@ -43,15 +43,13 @@ public final class Constants {
     public static final boolean kEnableAllianceFlipping = true;
   }
   public static class ElevatorConstants {
-    public static final int kElevatorMotorID = -1;
-    public static final int kBottomServoChannel = -1;
-    public static final int kTopServoChannel = -1;
-    public static final double kServoUpAngle = 0.0;
-    public static final double kServoDownAngle = 90.0;
-    public static final double kBottomPosition = 0;
-    public static final double kPosition1 = 1.0;
-    public static final double kPosition2 = 2.0;
-    public static final double kElevtorPositionOffset = 0.1;
+    public static final int kElevatorMotorID = 0;
+    public static final int kLeftServoChannel = 0;
+    public static final int kRightServoChannel = 0;
+    public static final int kTopServoChannel = 0;
+    public static final double kSideServoOutPosition = 0.5;
+    public static final double kDownPosition = 0;
+    public static final double kUpPosition = 1.0;
     public static final double kMaxVelocity = 10.0;
     public static final double kMaxAcceleration = 20.0;
     public static final double kS = 0.0;
@@ -60,6 +58,5 @@ public final class Constants {
     public static final double kP = 0.0;
     public static final double kI = 0.0;
     public static final double kD = 0.0;
-    public static final double kdt = 0.02;
   }
 }
