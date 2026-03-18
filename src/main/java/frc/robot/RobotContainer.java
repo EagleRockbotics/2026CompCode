@@ -12,6 +12,7 @@ import frc.robot.commands.ExampleCommand;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.AutoHandlingSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
@@ -81,6 +82,7 @@ public class RobotContainer {
   private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
   private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(1, m_drivetrain, m_limelightSubsystem);
   private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand(driveStick);
+  private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
 
   // Code copied from CTRE Swerve template
   private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top
@@ -156,6 +158,16 @@ public class RobotContainer {
     m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftBumper();
     m_shooterSubsystem.xAxis = () -> {return -joystick.getLeftX();};
     m_shooterSubsystem.yAxis = () -> {return -joystick.getLeftY();};
+
+    m_elevatorSubsystem.backLeftButtonAxis = () -> {return helperStick.getLeftTriggerAxis();};
+    m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
+    m_elevatorSubsystem.backLeftButtonTrigger = helperStick.leftTrigger();
+    m_elevatorSubsystem.backRightButtonTrigger = helperStick.rightTrigger();
+    m_elevatorSubsystem.enableElevatorTrigger = driveStick.b();
+    m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
+    m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
+    m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
+    m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
 
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is

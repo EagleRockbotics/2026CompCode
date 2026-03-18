@@ -48,6 +48,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Supplier<Double> xAxis = () -> {return 0d;};
   public Supplier<Double> yAxis = () -> {return 0d;};
 
+  
   // mode 0: manual aim, uses limelight for pose calculation
 
   // mode 1: aims robot directly at hub, uses combined vison & odometry measurement for pose calculation
