@@ -5,6 +5,7 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkFlex;
+import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkFlexConfig;
@@ -43,6 +44,10 @@ public class ShooterSubsystem extends SubsystemBase {
   private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future?
   private final int mode;
   private final boolean aimWithRobotVelocity = false; // TODO: set during testing & stuff
+
+  private final SparkMax m_indexerBeltMotor = new SparkMax(Constants.ShooterConstants.kIndexerBeltMotorId, MotorType.kBrushed);
+  private final SparkMax m_indexerRollerMotor = new SparkMax(Constants.ShooterConstants.kIndexerRollerMotorId, MotorType.kBrushed);
+
   public Trigger autoAimTeleopTrigger = new Trigger(() -> {return false;});
   public Trigger manualAimTeleopTrigger = new Trigger(() -> {return false;});
   public Supplier<Double> xAxis = () -> {return 0d;};
@@ -124,9 +129,19 @@ public class ShooterSubsystem extends SubsystemBase {
         break;
     }
     double RPMSetpoint = (mode == 4 || mode == 5) ? m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getSecond() : calculateRPMFromVelocity(calculateTargetVelocity(hubDistance));
-    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.run(() -> m_driveMotor.getClosedLoopController().setSetpoint(RPMSetpoint, ControlType.kVelocity)));
+    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(driveShooterCommand(RPMSetpoint));
   }), this::getAimRequest);
     }
+
+  private Command driveShooterCommand(double rpm) {
+    return Commands.run(() -> {
+    m_driveMotor.getClosedLoopController().setSetpoint(rpm, ControlType.kVelocity);
+    if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffestBeforeShootFails) {
+      m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
+      m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
+    }
+   }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
+  }
 
   
 
