@@ -171,7 +171,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     switch (mode) {
       case 4:
-        return driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst() ,xAxis, yAxis);
+        return driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst());
       case 3:
           double flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
           ChassisSpeeds currentChassisSpeeds = m_drivetrain.getState().Speeds;
@@ -179,7 +179,7 @@ public class ShooterSubsystem extends SubsystemBase {
             flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
             flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
           );
-        return driveShooterFacingPoint(effectiveRelativeHubPosition, xAxis, yAxis);
+        return driveShooterFacingPoint(effectiveRelativeHubPosition);
       case 2:
         if (aimWithRobotVelocity) {
           double old_flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
@@ -206,7 +206,7 @@ public class ShooterSubsystem extends SubsystemBase {
             .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
-  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Supplier<Double> xAxis, Supplier<Double> yAxis) {
+  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint) {
         Pose2d currentPose = m_drivetrain.getPose();
         Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
         Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
@@ -223,7 +223,7 @@ public class ShooterSubsystem extends SubsystemBase {
         .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
-  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset, Supplier<Double> xAxis, Supplier<Double> yAxis) {
+  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset) {
         Pose2d currentPose = m_drivetrain.getPose();
         Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
         Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
