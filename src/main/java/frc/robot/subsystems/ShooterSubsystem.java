@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants;
 import frc.robot.LimelightHelpers;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
@@ -58,6 +59,8 @@ public class ShooterSubsystem extends SubsystemBase {
   public Supplier<Double> yAxis = () -> {return 0d;};
 
   private final StructPublisher m_targetAnglePublisher = NetworkTableInstance.getDefault().getStructTopic("Shooter/FacingTarget", Pose2d.struct).publish();
+  private final DoublePublisher rpmPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/RPM").publish();
+  private final DoublePublisher targetVelocityPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/Target Velocity").publish();
 
   
   // mode 0: manual aim, uses limelight for pose calculation
@@ -140,13 +143,14 @@ public class ShooterSubsystem extends SubsystemBase {
         break;
     }
     double RPMSetpoint = (mode == 4 || mode == 5) ? m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getSecond() : calculateRPMFromVelocity(calculateTargetVelocity(hubDistance));
-    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(driveShooterCommand(RPMSetpoint));
+    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
   }), this::getAimRequest);
     }
 
   private Command driveShooterCommand(double rpm) {
     return Commands.run(() -> {
     m_driveMotor.getClosedLoopController().setSetpoint(rpm, ControlType.kVelocity);
+    rpmPublisher.set(this.m_driveMotor.getEncoder().getVelocity());
     if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffestBeforeShootFails) {
       m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
       m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
