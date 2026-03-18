@@ -171,7 +171,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     switch (mode) {
       case 4:
-        return m_drivetrain.driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst());
+        return m_drivetrain.driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst() ,xAxis, yAxis);
       case 3:
           double flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
           ChassisSpeeds currentChassisSpeeds = m_drivetrain.getState().Speeds;
@@ -179,7 +179,7 @@ public class ShooterSubsystem extends SubsystemBase {
             flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
             flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
           );
-        return m_drivetrain.driveShooterFacingPoint(effectiveRelativeHubPosition);
+        return m_drivetrain.driveShooterFacingPoint(effectiveRelativeHubPosition, xAxis, yAxis);
       case 2:
         if (aimWithRobotVelocity) {
           double old_flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());

@@ -278,7 +278,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     @SuppressWarnings("static-access")
-    public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint) {
+    public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Supplier<Double> xAxis, Supplier<Double> yAxis) {
             Pose2d currentPose = this.getPose();
             Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
             Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
@@ -289,11 +289,14 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             
             return new SwerveRequest.FieldCentricFacingAngle()
             .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
-            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta);
+            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
+            .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
+            .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
+ 
     }
 
     @SuppressWarnings("static-access")
-    public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset) {
+    public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset, Supplier<Double> xAxis, Supplier<Double> yAxis) {
             Pose2d currentPose = this.getPose();
             Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
             Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
@@ -304,7 +307,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             
             return new SwerveRequest.FieldCentricFacingAngle()
             .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
-            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta);
+            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
+            .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
+            .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
+ 
     }
 
     public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, double yDistance, Pose2d sensorOffset) {
