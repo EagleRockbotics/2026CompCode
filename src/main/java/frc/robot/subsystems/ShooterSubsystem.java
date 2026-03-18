@@ -171,7 +171,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     switch (mode) {
       case 4:
-        return m_drivetrain.driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst() ,xAxis, yAxis);
+        return driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst() ,xAxis, yAxis);
       case 3:
           double flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
           ChassisSpeeds currentChassisSpeeds = m_drivetrain.getState().Speeds;
@@ -179,7 +179,7 @@ public class ShooterSubsystem extends SubsystemBase {
             flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
             flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
           );
-        return m_drivetrain.driveShooterFacingPoint(effectiveRelativeHubPosition, xAxis, yAxis);
+        return driveShooterFacingPoint(effectiveRelativeHubPosition, xAxis, yAxis);
       case 2:
         if (aimWithRobotVelocity) {
           double old_flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
@@ -204,6 +204,40 @@ public class ShooterSubsystem extends SubsystemBase {
             .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
             .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
             .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
+  }
+
+  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Supplier<Double> xAxis, Supplier<Double> yAxis) {
+        Pose2d currentPose = m_drivetrain.getPose();
+        Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
+        Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
+        
+        double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
+        double y = relativeTargetPosition.getY();
+        double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
+        
+        new Rotation2d();
+        return new SwerveRequest.FieldCentricFacingAngle()
+        .withTargetDirection(Rotation2d.fromDegrees(targetAngle))
+        .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
+        .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
+        .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
+  }
+
+  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset, Supplier<Double> xAxis, Supplier<Double> yAxis) {
+        Pose2d currentPose = m_drivetrain.getPose();
+        Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
+        Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
+        
+        double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
+        double y = relativeTargetPosition.getY();
+        double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
+        
+        new Rotation2d();
+        return new SwerveRequest.FieldCentricFacingAngle()
+        .withTargetDirection(Rotation2d.fromDegrees(targetAngle))
+        .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
+        .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
+        .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
   /**
