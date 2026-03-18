@@ -154,6 +154,9 @@ public class ShooterSubsystem extends SubsystemBase {
     if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffestBeforeShootFails) {
       m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
       m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
+    } else {
+      m_indexerBeltMotor.set(0);
+      m_indexerRollerMotor.set(0);
     }
    }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
   }
