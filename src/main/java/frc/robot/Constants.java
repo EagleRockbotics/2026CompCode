@@ -77,6 +77,8 @@ public final class Constants {
     public static final double kI = 0;
     public static final double kD = 0;
     public static final double kF = 0;
+
+    public static final double kMaxScoringRobotSpeed = 1; //guess. in meters per second
   }
 
   public static class IntakeConstants {

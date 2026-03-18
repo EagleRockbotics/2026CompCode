@@ -187,8 +187,8 @@ public class ShooterSubsystem extends SubsystemBase {
     return new SwerveRequest.FieldCentricFacingAngle()
             .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
             .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
-            .withVelocityX(xAxis.get())
-            .withVelocityY(yAxis.get());
+            .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
+            .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
   /**
