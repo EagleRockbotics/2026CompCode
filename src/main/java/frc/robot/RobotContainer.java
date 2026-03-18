@@ -150,12 +150,12 @@ public class RobotContainer {
     joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
 
     // Reset the field-centric heading on left bumper press.
-    joystick.leftBumper().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
+    // joystick.leftBumper().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
 
     m_drivetrain.registerTelemetry(logger::telemeterize);
 
-    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightBumper();
-    m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftBumper();
+    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger();
+    m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
     m_shooterSubsystem.xAxis = () -> {return -joystick.getLeftX();};
     m_shooterSubsystem.yAxis = () -> {return -joystick.getLeftY();};
 
