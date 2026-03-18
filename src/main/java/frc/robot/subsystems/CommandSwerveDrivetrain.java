@@ -333,7 +333,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         double robotVelocityOrthToPoint = robotVelocity.dot(unitInOrthDirection)*Constants.SwerveConstants.kAirResistanceFactor;
         double newExitVelocity = Math.sqrt(Math.pow(desiredExitVelocity - robotVelocityTowardsPoint, 2) + Math.pow(robotVelocityOrthToPoint, 2));
         
-        double angleOffset = -Math.acos(robotVelocityOrthToPoint/newExitVelocity);
+        double angleOffset = -Math.asin(robotVelocityOrthToPoint/newExitVelocity);
 
         return new Pair<Double,Double>(angleOffset, newExitVelocity);
     }
