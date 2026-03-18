@@ -124,9 +124,11 @@ public class ShooterSubsystem extends SubsystemBase {
   private Command driveShooterCommand(double rpm) {
     return Commands.run(() -> {
     m_driveMotor.getClosedLoopController().setSetpoint(rpm, ControlType.kVelocity);
-    m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
-    m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
-    }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
+    if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffestBeforeShootFails) {
+      m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
+      m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
+    }
+   }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
   }
 
   

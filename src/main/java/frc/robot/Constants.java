@@ -105,8 +105,10 @@ public final class Constants {
     public static final int kIndexerBeltMotorId = 0;
     public static final int kIndexerRollerMotorId = 0;
 
-    public static final double kIndexerBeltPower = 0.2;
-    public static final double kIndexerRollerPower = -0.2;
+    public static final double kIndexerBeltPower = 0.9;
+    public static final double kIndexerRollerPower = -0.9;
+
+    public static final double kMaxRPMOffestBeforeShootFails = 150; //guess. please change
   }
 
   public static class IntakeConstants {
