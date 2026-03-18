@@ -247,10 +247,10 @@ public class ShooterSubsystem extends SubsystemBase {
         double y = relativeTargetPosition.getY();
         double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
         
-        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
+        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle + angleOffset)));
         new Rotation2d();
         return new SwerveRequest.FieldCentricFacingAngle()
-        .withTargetDirection(Rotation2d.fromRadians(targetAngle))
+        .withTargetDirection(Rotation2d.fromRadians(targetAngle + angleOffset))
         .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
         .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
         .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
