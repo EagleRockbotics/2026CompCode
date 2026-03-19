@@ -219,7 +219,7 @@ public class ShooterSubsystem extends SubsystemBase {
     }
         m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
     return new SwerveRequest.FieldCentricFacingAngle()
-            .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
+            .withTargetDirection(new Rotation2d().fromRadians(targetAngle))
             .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
             .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
             .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
