@@ -146,7 +146,8 @@ public class ShooterSubsystem extends SubsystemBase {
         break;
     }
     double RPMSetpoint = (mode == 4 || mode == 5) ? m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getSecond() : calculateRPMFromVelocity(calculateTargetVelocity(hubDistance));
-    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
+    autoAimTeleopTrigger.whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
+    manualAimTeleopTrigger.whileTrue(driveShooterCommand(Constants.ShooterConstants.kPassRPM));
   }), this::getAimRequest);
     }
 
