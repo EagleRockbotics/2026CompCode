@@ -107,7 +107,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double calculateTargetVelocity(double distance) { // i will not put gravity as a constant in the constant file shut the frick up lazar
-    double g = 9.81;
+    double g = -9.81;
     double c = Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight;
     double theta = Math.toRadians(Constants.ShooterConstants.kShooterAngle);
     return Math.sqrt(((g*g)+(distance*distance))/(-2*Math.pow(Math.cos(theta),2)*(g*distance*Math.tan(theta)-(g*c))));
