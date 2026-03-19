@@ -110,7 +110,7 @@ public class ShooterSubsystem extends SubsystemBase {
     double g = 9.81;
     double c = Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight;
     double theta = Math.toRadians(Constants.ShooterConstants.kShooterAngle);
-    return Math.sqrt(((g*g)+(distance*distance))/(-2*Math.pow(Math.cos(theta),2)*(g*distance*Math.tan(theta)-(g*c/2))));
+    return Math.sqrt(((g*g)+(distance*distance))/(-2*Math.pow(Math.cos(theta),2)*(g*distance*Math.tan(theta)-(g*c))));
   }
 
   public double calculateRPMFromVelocity(double velocity) { // TODO: do this
