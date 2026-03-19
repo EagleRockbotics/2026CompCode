@@ -14,6 +14,7 @@ import frc.robot.subsystems.AutoHandlingSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 
@@ -83,6 +84,7 @@ public class RobotContainer {
   private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(1, m_drivetrain, m_limelightSubsystem);
   private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand(driveStick);
   private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
+  private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
   // Code copied from CTRE Swerve template
   private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top
@@ -168,6 +170,12 @@ public class RobotContainer {
     m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
     m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
     m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
+
+    m_intakeSubsytem.runIntakeTrigger = driveStick.y();
+    m_intakeSubsytem.reverseIntakeTrigger = driveStick.x();
+    
+
+    
 
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
