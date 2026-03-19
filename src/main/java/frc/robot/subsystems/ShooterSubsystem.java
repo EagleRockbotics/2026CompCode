@@ -103,11 +103,14 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double calculateFlightTime(double distance) {
-    return Math.sqrt((2/9.81)*(Constants.FieldConstants.kHubHeight - Constants.ShooterConstants.kShooterHeight - distance*Math.toRadians(Constants.ShooterConstants.kShooterAngle)));
+    return distance/calculateTargetVelocity(distance);
   }
 
   public double calculateTargetVelocity(double distance) { // i will not put gravity as a constant in the constant file shut the frick up lazar
-    return distance/(Math.cos(Constants.ShooterConstants.kShooterAngle)*Math.sqrt((2/9.81)*(Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight-(distance*Math.tan(Constants.ShooterConstants.kShooterAngle)))));
+    double g = 9.81;
+    double c = Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight;
+    double theta = Math.toRadians(Constants.ShooterConstants.kShooterAngle);
+    return Math.sqrt(((g*g)+(distance*distance))/(-2*Math.pow(Math.cos(theta),2)*(g*distance*Math.tan(theta)-(g*c/2))));
   }
 
   public double calculateRPMFromVelocity(double velocity) { // TODO: do this
