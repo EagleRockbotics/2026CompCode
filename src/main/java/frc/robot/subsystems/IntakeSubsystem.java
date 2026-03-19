@@ -24,47 +24,37 @@ import com.ctre.phoenix6.hardware.CANcoder;
 
 
 public class IntakeSubsystem extends SubsystemBase {
-  private final SparkFlex m_motorRightIntake;
-  private final SparkFlex m_motorRightSpin;
-  private final XboxController m_driveController;
-  private final PIDController m_pid;
+  private final SparkFlex m_motorRightIntake = new SparkFlex(Constants.IntakeConstants.k_RightIntakeId, SparkLowLevel.MotorType.kBrushless);
+
+  private final SparkFlex m_motorRightSpin= new SparkFlex(Constants.IntakeConstants.k_RightSpinId, SparkLowLevel.MotorType.kBrushless);
+
+  private final PIDController m_pid  =  new PIDController(Constants.IntakeConstants.k_Kp, 0, Constants.IntakeConstants.k_Kd);
+
 
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
 
-  private final CANcoder m_RightEncoder;
-  private final ArmFeedforward m_armFeed;
+  private final CANcoder m_RightEncoder = new CANcoder(Constants.IntakeConstants.k_RightEncoderId);
 
+  private final ArmFeedforward m_armFeed = new ArmFeedforward(Constants.IntakeConstants.k_Ks, Constants.IntakeConstants.k_Kg, Constants.IntakeConstants.k_Kv);
+;
 
   public Trigger runIntakeTrigger = new Trigger(() -> {return false;});
-  public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
 
 
  
   public IntakeSubsystem() {
-    m_motorRightIntake = new SparkFlex(Constants.IntakeConstants.k_RightIntakeId, SparkLowLevel.MotorType.kBrushless);
-    m_motorRightSpin = new SparkFlex(Constants.IntakeConstants.k_RightSpinId, SparkLowLevel.MotorType.kBrushless);
-    m_driveController = new XboxController(Constants.OperatorConstants.kHelperControllerPort);
-    m_pid = new PIDController(Constants.IntakeConstants.k_Kp, 0, Constants.IntakeConstants.k_Kd);
-    m_RightEncoder = new CANcoder(Constants.IntakeConstants.k_RightEncoderId);
-    m_armFeed = new ArmFeedforward(Constants.IntakeConstants.k_Ks, Constants.IntakeConstants.k_Kg, Constants.IntakeConstants.k_Kv);
+    m_RightEncoder.set(0);
   }
 
   public Command runCommand() {
     return run(
         () -> {
-  
-          //Right Motor Code
-          //Spin Motor Code
-          runIntakeTrigger.whileTrue(runIntakeCommand().onlyIf(() -> {return !reverseIntakeTrigger.getAsBoolean();}));
+          runIntakeTrigger.whileTrue(runIntakeCommand());
             
             
     
 
-          reverseIntakeTrigger.whileTrue(reverseIntakeCommand().onlyIf(() -> {return runIntakeTrigger.getAsBoolean();}));
 
-          
-
-          //Have it so if either triggers are pressed, then run the intake being brought down
           //
                         //Reverse Motor Code
             /* 
@@ -99,23 +89,21 @@ public class IntakeSubsystem extends SubsystemBase {
 
   //Creates the output needed for the motor spin to a certain radian
   public double calculateMotorOutput(double radian) {
-    double output = 0;
-      output = (m_pid.calculate(m_RightEncoder.getPosition().getValueAsDouble())
+    double output = (m_pid.calculate(m_RightEncoder.getPosition().getValueAsDouble())
      + m_armFeed.calculate(radian, m_RightEncoder.getVelocity().getValueAsDouble()));
     return output;
   }
 
-  public Command reverseIntakeCommand() {
-    return Commands.runOnce(() -> {
-      m_motorRightSpin.set(calculateMotorOutput((Constants.IntakeConstants.k_TargetAngle * Math.PI)/180));
-      m_motorRightIntake.set(-Constants.IntakeConstants.k_IntakePower);
-    });
-  }
+ 
 
   public Command runIntakeCommand() {
-    return Commands.runOnce(() -> {
+    return Commands.run(() -> {
+     int inversionFactor = 1;
+      if (reverseIntakeTrigger.getAsBoolean()) {
+        inversionFactor = -1;
+      }
       m_motorRightSpin.set(calculateMotorOutput((Constants.IntakeConstants.k_TargetAngle * Math.PI)/180));
-      m_motorRightIntake.set(Constants.IntakeConstants.k_IntakePower);
+      m_motorRightIntake.set(inversionFactor*Constants.IntakeConstants.k_IntakePower);
     });
   }
 
