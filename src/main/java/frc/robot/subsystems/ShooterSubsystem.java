@@ -171,8 +171,9 @@ public class ShooterSubsystem extends SubsystemBase {
         targetVelocity = calculateTargetVelocity(hubDistance);
       }
       double RPMSetpoint = calculateRPMFromVelocity(targetVelocity);
-      autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
-    }), this::getAimRequest);
+      autoAimTeleopTrigger.whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
+      manualAimTeleopTrigger.whileTrue(driveShooterCommand(Constants.ShooterConstants.kPassRPM));
+  }), this::getAimRequest);
   }
 
   private Command driveShooterCommand(double rpm) {

@@ -86,6 +86,7 @@ public final class Constants {
     public static final double kIndexerRollerPower = -0.9;
 
     public static final double kMaxRPMOffestBeforeShootFails = 150; //guess. please change
+    public static final double kPassRPM = 2500;
 
     public static final double kMaxScoringRobotSpeed = 1; //guess. in meters per second
   }
