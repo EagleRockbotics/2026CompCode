@@ -49,7 +49,6 @@ public class ShooterSubsystem extends SubsystemBase {
 
   // SHOOTER MODE CONFIGURATION
   private final boolean forceLimelight = true;
-  private final boolean useAutoAim = true;
   private final boolean useRobotVelocityCompensation = true; // TODO: set during testing & stuff
   private final boolean useShooterOffsetCompensation = true; // if true, shooter is aimed at hub; if false, robot is aimed at hub
   private final boolean useZippyZoomMath = false; // takes priority over useRobotVelocityCompensation (they're mutually exclusive)
@@ -126,7 +125,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public double calculateTargetVelocity(double distance) {
     double g = -9.81;
     double c = Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight;
-    double theta = Math.toRadians(Constants.ShooterConstants.kShooterAngle);
+    double theta = Constants.ShooterConstants.kShooterAngle;
     return Math.sqrt(((g*g)+(distance*distance))/(-2*Math.pow(Math.cos(theta),2)*(g*distance*Math.tan(theta)-(g*c))));
   }
 
@@ -171,7 +170,7 @@ public class ShooterSubsystem extends SubsystemBase {
         targetVelocity = calculateTargetVelocity(hubDistance);
       }
       double RPMSetpoint = calculateRPMFromVelocity(targetVelocity);
-      autoAimTeleopTrigger.whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
+      autoAimTeleopTrigger.and(() -> {return hubDistance < Constants.ShooterConstants.kMinRobotDistanceFromHub;}).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
       manualAimTeleopTrigger.whileTrue(driveShooterCommand(Constants.ShooterConstants.kPassRPM));
   }), this::getAimRequest);
   }
@@ -192,11 +191,11 @@ public class ShooterSubsystem extends SubsystemBase {
 
   @SuppressWarnings("unchecked")
   public SwerveRequest getAimRequest() {
+    Translation2d hubPosition = getCurrentHubPosition();
     Pose2d currentPose = getCurrentPose();
     double targetAngle;
 
     if (useZippyZoomMath) {
-      Translation2d hubPosition = getCurrentHubPosition();
       targetAngle = zippyZoomMath(calculateTargetVelocity(hubPosition.getNorm()), hubPosition).getFirst();
     } else {
       targetAngle = calculateTargetAngle();

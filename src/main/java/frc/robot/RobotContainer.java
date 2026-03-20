@@ -187,17 +187,12 @@ public class RobotContainer {
   }
 
   private SwerveRequest getDriveRequest() {
-          if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean()) {
-            return m_shooterPair.getSecond().get();
-          }
-          return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier) // Drive
-                                                                                                                     // forward
-                                                                                                                     // with
-                                                                                                                     // negative
-                                                                                                                     // Y
-                                                                                                                     // (forward)
-            .withVelocityY(-joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
-            .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
+    if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean()) {
+      return m_shooterPair.getSecond().get();
+    }
+    return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier)
+      .withVelocityY(-joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
+      .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
   }
 
   
