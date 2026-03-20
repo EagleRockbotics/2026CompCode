@@ -46,9 +46,13 @@ public class ShooterSubsystem extends SubsystemBase {
   private final CommandSwerveDrivetrain m_drivetrain;
   private final LimelightSubsystem m_limelightSubsystem;
   private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future?
-  private final int mode;
+
+  // SHOOTER MODE CONFIGURATION
   private final boolean forceLimelight = true;
-  private final boolean aimWithRobotVelocity = false; // TODO: set during testing & stuff
+  private final boolean useAutoAim = true;
+  private final boolean useRobotVelocityCompensation = true; // TODO: set during testing & stuff
+  private final boolean useShooterOffsetCompensation = true; // if true, shooter is aimed at hub; if false, robot is aimed at hub
+  private final boolean useZippyZoomMath = false; // takes priority over useRobotVelocityCompensation (they're mutually exclusive)
 
   private final SparkMax m_indexerBeltMotor = new SparkMax(Constants.ShooterConstants.kIndexerBeltMotorId, MotorType.kBrushed);
   private final SparkMax m_indexerRollerMotor = new SparkMax(Constants.ShooterConstants.kIndexerRollerMotorId, MotorType.kBrushed);
@@ -62,15 +66,8 @@ public class ShooterSubsystem extends SubsystemBase {
   private final DoublePublisher rpmPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/RPM").publish();
   private final DoublePublisher targetVelocityPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/Target Velocity").publish();
 
-  
-  // mode 0: manual aim, uses limelight for pose calculation
-
-  // mode 1: aims robot directly at hub, uses combined vison & odometry measurement for pose calculation
-  // mode 2: aims shooter at hub (accounting for robot motion if aimWithRobotVelocity), uses combined measurements
-
   @SuppressWarnings("removal")
-  public ShooterSubsystem(int _mode, CommandSwerveDrivetrain drivetrain, LimelightSubsystem limelight) {
-    mode = _mode;
+  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, LimelightSubsystem limelight) {
     m_motorConfig.closedLoop.p(Constants.ShooterConstants.kP)
       .i(Constants.ShooterConstants.kI)
       .d(Constants.ShooterConstants.kD)
@@ -83,43 +80,50 @@ public class ShooterSubsystem extends SubsystemBase {
     m_limelightSubsystem = limelight;
   }
 
-  public double getLimelightDistanceFromHub() {
-    Pose2d currentPose = m_limelightSubsystem.getPoseEstimate().pose;
-    Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-    return currentPosition.getDistance(Constants.FieldConstants.kHubPosition);
-  }
-
   public double getDistanceFromPose(Pose2d currentPose) {
     Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
     return currentPosition.getDistance(Constants.FieldConstants.kHubPosition); 
-  } 
-
-  public double getCombinedDistanceFromHub() {
-    Pose2d currentPose = m_drivetrain.getState().Pose;
-    Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-    return currentPosition.getDistance(Constants.FieldConstants.kHubPosition);
   }
 
-  public double getEffectiveDistanceFromHub(Pose2d currentPose) {
-    Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-    
-    Translation2d actualRelativeHubPosition = Constants.FieldConstants.kHubPosition.minus(currentPosition);
-    double actualHubDistance = actualRelativeHubPosition.getNorm();
-    double flightTime = calculateFlightTime(actualHubDistance);
-    
+  public Pose2d getCurrentPose() {
+    if (forceLimelight) {
+      return m_limelightSubsystem.getPoseEstimate().pose;
+    } else {
+      return m_drivetrain.getState().Pose;
+    }
+  }
+
+  public Translation2d getCurrentPosition() {
+    Pose2d currentPose = getCurrentPose();
+    return new Translation2d(currentPose.getX(), currentPose.getY());
+  }
+
+  public Translation2d getEffectiveHubPosition() { // gets robot velocity-compensated hub position
+    Translation2d actualHubPosition = Constants.FieldConstants.kHubPosition.minus(getCurrentPosition());
+    double flightTime = calculateFlightTime(actualHubPosition.getNorm());
     ChassisSpeeds currentChassisSpeeds = m_drivetrain.getState().Speeds;
-    Translation2d effectiveRelativeHubPosition = new Translation2d(
-      flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
-      flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
+
+    Translation2d effectiveHubPosition = new Translation2d(
+      flightTime*currentChassisSpeeds.vxMetersPerSecond + actualHubPosition.getX(),
+      flightTime*currentChassisSpeeds.vyMetersPerSecond + actualHubPosition.getY()
     );
-    return effectiveRelativeHubPosition.getNorm();
+    return effectiveHubPosition;
+  }
+
+  @SuppressWarnings("unused")
+  public Translation2d getCurrentHubPosition() {
+    if (useRobotVelocityCompensation && !useZippyZoomMath) {
+      return getEffectiveHubPosition();
+    } else {
+      return Constants.FieldConstants.kHubPosition.minus(getCurrentPosition()); 
+    }
   }
 
   public double calculateFlightTime(double distance) {
     return distance/calculateTargetVelocity(distance);
   }
 
-  public double calculateTargetVelocity(double distance) { // i will not put gravity as a constant in the constant file shut the frick up lazar
+  public double calculateTargetVelocity(double distance) {
     double g = -9.81;
     double c = Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight;
     double theta = Math.toRadians(Constants.ShooterConstants.kShooterAngle);
@@ -127,28 +131,49 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double calculateRPMFromVelocity(double velocity) { // TODO: do this
-    return velocity;
+    return 500 * velocity;
+  }
+
+  public double calculateTargetAngle() { // calculates target angle while accounting for useShooterOffsetCompensation
+    Translation2d hubPosition = getCurrentHubPosition();
+
+    double targetAngle = Math.atan(hubPosition.getY()/hubPosition.getX());
+    if (useShooterOffsetCompensation) {
+      targetAngle += Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/hubPosition.getNorm()) - Math.signum(hubPosition.getX())*Constants.ShooterConstants.kShooterAngle;
+    }
+    return targetAngle;
+  }
+
+  //Returns robot angle offset and then shooter exit velocity (!!! not rpm). takes in exit velocity in m/s
+  public Pair<Double, Double> zippyZoomMath(double desiredExitVelocity, Translation2d targetPoint) {
+    Translation2d robotVelocity = new Translation2d(m_drivetrain.getState().Speeds.vxMetersPerSecond, m_drivetrain.getState().Speeds.vyMetersPerSecond);
+    Translation2d robotToTarget = targetPoint.minus(m_drivetrain.getPose().getTranslation());
+    Translation2d unitInTargetDirection = robotToTarget.div(robotToTarget.getNorm());
+    Translation2d unitInOrthDirection = unitInTargetDirection.rotateBy(new Rotation2d(Math.PI/2));
+
+    double robotVelocityTowardsPoint = robotVelocity.dot(unitInTargetDirection);
+    double robotVelocityOrthToPoint = robotVelocity.dot(unitInOrthDirection)*Constants.SwerveConstants.kAirResistanceFactor;
+    double newExitVelocity = Math.sqrt(Math.pow(desiredExitVelocity - robotVelocityTowardsPoint, 2) + Math.pow(robotVelocityOrthToPoint, 2));
+    
+    double angleOffset = -Math.asin(robotVelocityOrthToPoint/newExitVelocity);
+
+    return new Pair<Double,Double>(angleOffset, newExitVelocity);
   }
 
   public Pair<Command, Supplier<SwerveRequest>> shooterCommand(CommandXboxController joystick) {
     return new Pair<Command,Supplier<SwerveRequest>>(Commands.run(() -> {
-      double hubDistance;
-      Pose2d currentPose = m_drivetrain.getState().Pose;
-      if (forceLimelight) {
-        currentPose = m_limelightSubsystem.getRobotPose();
+      Translation2d hubPosition = getCurrentHubPosition();
+      double hubDistance = hubPosition.getNorm();
+      double targetVelocity;
+      if (useZippyZoomMath) {
+        targetVelocity = zippyZoomMath(calculateTargetVelocity(hubDistance), hubPosition).getSecond();
+      } else{
+        targetVelocity = calculateTargetVelocity(hubDistance);
       }
-    switch (mode) {
-      case 3:
-        hubDistance = getEffectiveDistanceFromHub(currentPose);
-        break;
-      default:
-        hubDistance = getDistanceFromPose(currentPose);
-        break;
-    }
-    double RPMSetpoint = (mode == 4 || mode == 5) ? m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getSecond() : calculateRPMFromVelocity(calculateTargetVelocity(hubDistance));
-    autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
-  }), this::getAimRequest);
-    }
+      double RPMSetpoint = calculateRPMFromVelocity(targetVelocity);
+      autoAimTeleopTrigger.or(manualAimTeleopTrigger).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
+    }), this::getAimRequest);
+  }
 
   private Command driveShooterCommand(double rpm) {
     return Commands.run(() -> {
@@ -164,70 +189,27 @@ public class ShooterSubsystem extends SubsystemBase {
    }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
   }
 
-  
-
-
-  @SuppressWarnings("static-access")
+  @SuppressWarnings("unchecked")
   public SwerveRequest getAimRequest() {
-    Pose2d currentPose = m_drivetrain.getState().Pose;
-    if (forceLimelight) {
-      currentPose = m_limelightSubsystem.getRobotPose();
-    }
-    Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-    Translation2d actualRelativeHubPosition = Constants.FieldConstants.kHubPosition.minus(currentPosition);
-
-    double x = actualRelativeHubPosition.getX();
-    double y = actualRelativeHubPosition.getY();
+    Pose2d currentPose = getCurrentPose();
     double targetAngle;
-    double hubDistance;
 
-     switch (mode) {
-      case 3:
-        hubDistance = getEffectiveDistanceFromHub(currentPose);
-        break;
-      default:
-        hubDistance = getDistanceFromPose(currentPose);
-        break;
-    }    
-
-    switch (mode) {
-      case 4:
-        return driveShooterFacingPoint(actualRelativeHubPosition, m_drivetrain.zippyZoomMath(calculateTargetVelocity(hubDistance), Constants.FieldConstants.kHubPosition).getFirst(), currentPose);
-      case 3:
-          double flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
-          ChassisSpeeds currentChassisSpeeds = m_drivetrain.getState().Speeds;
-          Translation2d effectiveRelativeHubPosition = new Translation2d(
-            flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
-            flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
-          );
-        return driveShooterFacingPoint(effectiveRelativeHubPosition, currentPose);
-      case 2:
-        if (aimWithRobotVelocity) {
-          double old_flightTime = calculateFlightTime(actualRelativeHubPosition.getNorm());
-          ChassisSpeeds old_currentChassisSpeeds = m_drivetrain.getState().Speeds;
-          Translation2d old_effectiveRelativeHubPosition = new Translation2d(
-            flightTime*currentChassisSpeeds.vxMetersPerSecond*actualRelativeHubPosition.getX(),
-            flightTime*currentChassisSpeeds.vyMetersPerSecond*actualRelativeHubPosition.getY()
-          );
-          x = old_effectiveRelativeHubPosition.getX();
-          y = old_effectiveRelativeHubPosition.getY();
-        }
-        targetAngle = Math.toDegrees(Math.atan(y/x) + Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/(Math.sqrt(Math.pow(x, 2)+Math.pow(y, 2)))) - (Math.signum(x)*Math.PI/2));
-        break;
-      case 1:
-        targetAngle = Math.toDegrees(Math.atan(y/x));
-        break;
-      default:
-        targetAngle = 0;
+    if (useZippyZoomMath) {
+      Translation2d hubPosition = getCurrentHubPosition();
+      targetAngle = zippyZoomMath(calculateTargetVelocity(hubPosition.getNorm()), hubPosition).getFirst();
+    } else {
+      targetAngle = calculateTargetAngle();
     }
-        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
+
+    m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
     return new SwerveRequest.FieldCentricFacingAngle()
-            .withTargetDirection(new Rotation2d().fromRadians(targetAngle))
-            .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
-            .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
-            .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
+      .withTargetDirection(Rotation2d.fromRadians(targetAngle))
+      .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
+      .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
+      .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
+  @SuppressWarnings("unchecked")
   public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Pose2d currentPose) {
         Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
         Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);

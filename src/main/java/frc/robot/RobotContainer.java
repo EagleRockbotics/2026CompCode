@@ -80,7 +80,7 @@ public class RobotContainer {
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
   private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
-  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(1, m_drivetrain, m_limelightSubsystem);
+  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem);
   private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand(driveStick);
   private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
 

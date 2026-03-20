@@ -69,10 +69,11 @@ public final class Constants {
   }
 
   public static class ShooterConstants {
-    public static final double kShooterHeight = 0; // TODO: height of ball as it leaves shooter
+    public static final double kShooterHeight = 0.381; // TODO: height of ball as it leaves shooter
     public static final double kShooterAngle = 0; // TODO: angle
     public static final int kDriveMotorId = 0; // TODO: Configure
     public static double kShooterDistanceFromCenter = 1;
+    public static double kMinRobotDistanceFromHub = 1.7;
     public static final double kP = 0;
     public static final double kI = 0;
     public static final double kD = 0;
