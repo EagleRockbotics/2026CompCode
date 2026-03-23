@@ -173,10 +173,6 @@ public class RobotContainer {
 
     m_intakeSubsytem.runIntakeTrigger = driveStick.y();
     m_intakeSubsytem.reverseIntakeTrigger = driveStick.x();
-    
-
-    
-
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
     // pressed,

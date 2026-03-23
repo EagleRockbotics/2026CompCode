@@ -301,7 +301,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
             double y = relativeTargetPosition.getY();
             double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
-            
             return new SwerveRequest.FieldCentricFacingAngle()
             .withTargetDirection(new Rotation2d().fromDegrees(targetAngle))
             .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta);

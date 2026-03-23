@@ -25,23 +25,16 @@ import com.ctre.phoenix6.hardware.CANcoder;
 
 public class IntakeSubsystem extends SubsystemBase {
   private final SparkFlex m_motorRightIntake = new SparkFlex(Constants.IntakeConstants.k_RightIntakeId, SparkLowLevel.MotorType.kBrushless);
-
   private final SparkFlex m_motorRightSpin= new SparkFlex(Constants.IntakeConstants.k_RightSpinId, SparkLowLevel.MotorType.kBrushless);
-
   private final PIDController m_pid  =  new PIDController(Constants.IntakeConstants.k_Kp, 0, Constants.IntakeConstants.k_Kd);
 
-
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
-
   private final CANcoder m_RightEncoder = new CANcoder(Constants.IntakeConstants.k_RightEncoderId);
-
   private final ArmFeedforward m_armFeed = new ArmFeedforward(Constants.IntakeConstants.k_Ks, Constants.IntakeConstants.k_Kg, Constants.IntakeConstants.k_Kv);
-;
 
   public Trigger runIntakeTrigger = new Trigger(() -> {return false;});
+  public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
 
-
- 
   public IntakeSubsystem() {
     m_RightEncoder.set(0);
   }
@@ -50,40 +43,6 @@ public class IntakeSubsystem extends SubsystemBase {
     return run(
         () -> {
           runIntakeTrigger.whileTrue(runIntakeCommand());
-            
-            
-    
-
-
-          //
-                        //Reverse Motor Code
-            /* 
-            if (reverseIntakeTrigger.getAsBoolean()){
-                m_motorRightIntake.set(-Constants.IntakeConstants.k_IntakePower);
-              } else { 
-                 m_motorRightIntake.set(Constants.IntakeConstants.k_IntakePower);
-              }
-            /*if (m_encoder.getPosition().getValueAsDouble() >= 0.25) {
-              m_motorRightSpin.set(0);
-            }
-
-          
-          } else {
-            m_motorRightSpin.set(calculateMotorOutput(0));
-                      }
-            */
-          /* 
-          if (m_driveController.getAButton() && !m_driveController.getBButton()) {
-            m_motorLeftSpin.set(Constants.IntakeConstants.k_SpinPower);
-          } else {
-            m_motorLeftSpin.set(-Constants.IntakeConstants.k_SpinPower);
-          }
-          */
-          //Left Motor Code
-         
-        
-
-
         });
   }
 
@@ -102,13 +61,10 @@ public class IntakeSubsystem extends SubsystemBase {
       if (reverseIntakeTrigger.getAsBoolean()) {
         inversionFactor = -1;
       }
-      m_motorRightSpin.set(calculateMotorOutput((Constants.IntakeConstants.k_TargetAngle * Math.PI)/180));
+      m_motorRightSpin.set(calculateMotorOutput(Constants.IntakeConstants.k_TargetAngle));
       m_motorRightIntake.set(inversionFactor*Constants.IntakeConstants.k_IntakePower);
     });
-  }
-
-    //Insert getAngularVelocity method
-  
+  }  
 
   @Override
   public void periodic() {
