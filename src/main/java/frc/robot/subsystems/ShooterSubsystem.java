@@ -14,6 +14,7 @@ import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.XboxController.Axis;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -126,6 +127,7 @@ public class ShooterSubsystem extends SubsystemBase {
     double g = -9.81;
     double c = Constants.FieldConstants.kHubHeight-Constants.ShooterConstants.kShooterHeight;
     double theta = Constants.ShooterConstants.kShooterAngle;
+    // Will return NaN if too close to Hub. Motor is n
     return Math.sqrt(((g*g)+(distance*distance))/(-2*Math.pow(Math.cos(theta),2)*(g*distance*Math.tan(theta)-(g*c))));
   }
 
@@ -160,7 +162,14 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public Pair<Command, Supplier<SwerveRequest>> shooterCommand() {
-    return new Pair<Command,Supplier<SwerveRequest>>(Commands.run(() -> {
+    return new Pair<Command,Supplier<SwerveRequest>>(Commands.runOnce(() -> {
+      autoAimTeleopTrigger.and(this::getRobotTooCloseToHub).whileTrue(Commands.parallel(driveShooterCommand(getOutputRPM()), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(getHubDistance())))));
+      manualAimTeleopTrigger.whileTrue(driveShooterCommand(Constants.ShooterConstants.kPassRPM));
+      autoAimTeleopTrigger.and(manualAimTeleopTrigger).whileFalse(shooterIdle());
+  }), this::getAimRequest);
+  }
+
+  private double getOutputRPM() {
       Translation2d hubPosition = getCurrentHubPosition();
       double hubDistance = hubPosition.getNorm();
       double targetVelocity;
@@ -170,9 +179,19 @@ public class ShooterSubsystem extends SubsystemBase {
         targetVelocity = calculateTargetVelocity(hubDistance);
       }
       double RPMSetpoint = calculateRPMFromVelocity(targetVelocity);
-      autoAimTeleopTrigger.and(() -> {return hubDistance < Constants.ShooterConstants.kMinRobotDistanceFromHub;}).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
-      manualAimTeleopTrigger.whileTrue(driveShooterCommand(Constants.ShooterConstants.kPassRPM));
-  }), this::getAimRequest);
+      return RPMSetpoint;
+  }
+
+  private boolean getRobotTooCloseToHub() {
+      Translation2d hubPosition = getCurrentHubPosition();
+      double hubDistance = hubPosition.getNorm();
+      return hubDistance < Constants.ShooterConstants.kMinRobotDistanceFromHub;
+  }
+
+  private double getHubDistance() {
+      Translation2d hubPosition = getCurrentHubPosition();
+      double hubDistance = hubPosition.getNorm();
+      return hubDistance;
   }
 
   public Pair<Command, Supplier<Double>> autoShooterCommand() {
@@ -203,7 +222,18 @@ public class ShooterSubsystem extends SubsystemBase {
       m_indexerBeltMotor.set(0);
       m_indexerRollerMotor.set(0);
     }
-   }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
+   }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);}); 
+  }
+
+
+  double lastRPM = 0;
+  private Command shooterIdle() {
+    Timer offTime = new Timer();
+    return Commands.sequence(Commands.runOnce(() -> offTime.restart()),
+    Commands.runOnce(() -> lastRPM = m_driveMotor.getEncoder().getVelocity()), 
+    Commands.run(() -> {
+      m_driveMotor.getClosedLoopController().setSetpoint(lastRPM/(Constants.ShooterConstants.kIdleDropoff*offTime.get() + 1), ControlType.kVelocity); 
+      rpmPublisher.set(m_driveMotor.getEncoder().getVelocity());}));
   }
 
   @SuppressWarnings("unchecked")

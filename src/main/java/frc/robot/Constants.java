@@ -98,6 +98,8 @@ public final class Constants {
     public static final double kPassRPM = 2500;
 
     public static final double kMaxScoringRobotSpeed = 1; //guess. in meters per second
+
+    public static final double kIdleDropoff = 50; //RPM rate at which shooter speed will fall off after shooting has stopped
   }
 
   public static class IntakeConstants {
