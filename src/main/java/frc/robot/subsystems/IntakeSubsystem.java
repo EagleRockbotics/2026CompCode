@@ -36,7 +36,7 @@ public class IntakeSubsystem extends SubsystemBase {
   public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
 
   public IntakeSubsystem() {
-    m_RightEncoder.set(0);
+    // m_RightEncoder.set(0.0d);
   }
 
   public Command runCommand() {

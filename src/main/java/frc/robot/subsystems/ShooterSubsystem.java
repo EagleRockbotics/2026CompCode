@@ -159,7 +159,7 @@ public class ShooterSubsystem extends SubsystemBase {
     return new Pair<Double,Double>(angleOffset, newExitVelocity);
   }
 
-  public Pair<Command, Supplier<SwerveRequest>> shooterCommand(CommandXboxController joystick) {
+  public Pair<Command, Supplier<SwerveRequest>> shooterCommand() {
     return new Pair<Command,Supplier<SwerveRequest>>(Commands.run(() -> {
       Translation2d hubPosition = getCurrentHubPosition();
       double hubDistance = hubPosition.getNorm();
@@ -173,6 +173,23 @@ public class ShooterSubsystem extends SubsystemBase {
       autoAimTeleopTrigger.and(() -> {return hubDistance < Constants.ShooterConstants.kMinRobotDistanceFromHub;}).whileTrue(Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))));
       manualAimTeleopTrigger.whileTrue(driveShooterCommand(Constants.ShooterConstants.kPassRPM));
   }), this::getAimRequest);
+  }
+
+  public Pair<Command, Supplier<Double>> autoShooterCommand() {
+    Translation2d hubPosition = getCurrentHubPosition();
+    double hubDistance = hubPosition.getNorm();
+    double targetVelocity;
+    if (useZippyZoomMath) {
+      targetVelocity = zippyZoomMath(calculateTargetVelocity(hubDistance), hubPosition).getSecond();
+    } else{
+      targetVelocity = calculateTargetVelocity(hubDistance);
+    }
+    double RPMSetpoint = calculateRPMFromVelocity(targetVelocity);
+
+    return new Pair<Command, Supplier<Double>>(
+      Commands.parallel(driveShooterCommand(RPMSetpoint), Commands.run(() -> targetVelocityPublisher.set(calculateTargetVelocity(hubDistance)))),
+      this::calculateTargetAngle
+    );
   }
 
   private Command driveShooterCommand(double rpm) {

@@ -6,6 +6,7 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import com.ctre.phoenix6.hardware.CANrange;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
@@ -17,6 +18,10 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -27,6 +32,8 @@ import frc.robot.Constants;
 
 public class ElevatorSubsystem extends SubsystemBase {
   /** Creates a new ExampleSubsystem. */
+
+  private final CANrange distanceSensor = new CANrange(0);
 
   private final SparkFlex m_motor = new SparkFlex(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
   private final SparkBaseConfig m_motorConfig = new SparkFlexConfig().idleMode(IdleMode.kBrake);
@@ -55,6 +62,8 @@ public class ElevatorSubsystem extends SubsystemBase {
   public Supplier<Double> backLeftButtonAxis = () -> {return 0d;};
   public Supplier<Double> backRightButtonAxis = () -> {return 0d;};
 
+  public boolean useDistanceSensor = true;
+
   public ElevatorSubsystem() {
     m_encoder.setPosition(0);
     m_motor.configure(m_motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
@@ -62,9 +71,6 @@ public class ElevatorSubsystem extends SubsystemBase {
 
   public Command raiseElevatorCommand() {
     return Commands.run(() -> {
-      if (backRightButtonAxis.get() > 0.05) {
-        
-      }
       m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
     });
   }
@@ -128,6 +134,56 @@ public class ElevatorSubsystem extends SubsystemBase {
         runTopServoTrigger.onTrue(runTopServoCommand());
       }));
     });
+  }
+
+  public Command climbStageSequence() {
+    return Commands.sequence(
+      raiseElevatorCommand(), lowerElevatorCommand()
+    );
+  }
+
+  public Command autoTeleopClimbSequence() {
+    return Commands.sequence(
+      runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
+      raiseElevatorCommand(),
+      releaseSideServosCommand(),
+      lowerElevatorCommand(),
+      raiseElevatorCommand(),
+      lowerElevatorCommand(),
+      raiseElevatorCommand(),
+      lowerElevatorCommand()
+    );
+  }
+
+  public Command autonomousClimbSequence() {
+    return Commands.sequence(
+      runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
+      raiseElevatorCommand(),
+      lowerElevatorCommand()
+    );
+  }
+
+  public Command teleopAlignWithLadder(CommandSwerveDrivetrain drivetrain) {
+    Pose2d currentPose = drivetrain.getState().Pose;
+    Pose2d targetPose = currentPose.getTranslation().getDistance(Constants.FieldConstants.kLeftLadderPose.getTranslation()) <
+      currentPose.getTranslation().getDistance(Constants.FieldConstants.kRightLadderPose.getTranslation()) ?
+      Constants.FieldConstants.kLeftLadderPose.plus(new Transform2d(new Translation2d(Constants.ElevatorConstants.kElevatorPositionFrontOffset, 0), new Rotation2d(Math.PI))) : 
+      Constants.FieldConstants.kRightLadderPose.plus(new Transform2d(new Translation2d(Constants.ElevatorConstants.kElevatorPositionFrontOffset, 0), new Rotation2d(Math.PI)));
+    
+    return drivetrain.moveToPose(targetPose);
+  }
+
+  public Command moveToLadder(CommandSwerveDrivetrain drivetrain) {
+    Pose2d currentPose = drivetrain.getState().Pose;
+    Pose2d targetPose = currentPose.getTranslation().getDistance(Constants.FieldConstants.kLeftLadderPose.getTranslation()) <
+      currentPose.getTranslation().getDistance(Constants.FieldConstants.kRightLadderPose.getTranslation()) ?
+      Constants.FieldConstants.kLeftLadderPose : Constants.FieldConstants.kRightLadderPose;
+    
+    if (useDistanceSensor) {
+      return Commands.none(); // TODO: turn into moveToDistanceSensorPoint call
+    } else {
+      return drivetrain.moveToPose(targetPose);
+    }
   }
 
   @Override

@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -24,9 +25,12 @@ import edu.wpi.first.math.geometry.Translation2d;
 public final class Constants {
   public static final String kLimelightName = "limelight-rock";
   public static final int kPigeonID = 14;
+  public static final int kDistanceSensorID = 0; // TODO: set CANrange ID
 
   public static class FieldConstants {
     public static final Translation2d kHubPosition = new Translation2d(0, 0); // TODO: Configure
+    public static final Pose2d kLeftLadderPose = new Pose2d(0,0,new Rotation2d(0)); // Pose where robot is in position, not the actual field position!!!
+    public static final Pose2d kRightLadderPose = new Pose2d(0,1,new Rotation2d(0)); // Pose where robot is in position, not the actual field position!!!
     public static final double kHubHeight = 0; // Todo: height of hub opening
   }
 
@@ -66,6 +70,11 @@ public final class Constants {
 
   public static class AutonomousConstants {
     public static final boolean kEnableAllianceFlipping = true;
+    public static final double kVisionPoseSampleTimeout = 0.25; // frick you lazare for making me make this a constant
+    public static final double kAutoElevatorTopServoTimeout = 0.5;
+    public static final double kStartEndDistanceError = 0.01;
+    public static final double kStartEndRotationError = 0.01;
+    public static final Pose2d testAutoAlignPose = new Pose2d(2, 2, new Rotation2d(0)); // TODO: update if needed
   }
 
   public static class ShooterConstants {
@@ -111,6 +120,8 @@ public final class Constants {
     public static final int kLeftServoChannel = 0;
     public static final int kRightServoChannel = 0;
     public static final int kTopServoChannel = 0;
+    public static final double kElevatorPositionFrontOffset = 0.25;
+    public static final double kMinDistanceError = 0.01;
     public static final double kSideServoOutPosition = 0.5;
     public static final double kDownPosition = 0;
     public static final double kUpPosition = 1.0;

@@ -263,22 +263,37 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     public Command goToEndPose(AutoTrajectory traj) {
        try {
+            Pose2d end = traj.getFinalPose().get();
            return Commands.run(() -> {
                Pose2d pose = this.getPose();
-               Pose2d end = traj.getFinalPose().get();
                this.setControl(new SwerveRequest.FieldCentric()
                        .withVelocityX(Constants.ChoreoConstants.xController.calculate(pose.getX(), end.getX()))
                        .withVelocityY(Constants.ChoreoConstants.yController.calculate(pose.getY(), end.getY()))
                        .withRotationalRate(thetaController.calculate(pose.getRotation().getRadians(),
                                end.getRotation().getRadians())));
-           });
+           }).onlyWhile(() -> (this.getPose().minus(end).getTranslation().getNorm() >= Constants.AutonomousConstants.kStartEndDistanceError && this.getPose().minus(end).getRotation().getRadians() >= Constants.AutonomousConstants.kStartEndRotationError));
+       } catch (Exception e) {
+        return Commands.none();
+       }
+    }
+
+    public Command moveToPose(Pose2d targetPose) {
+        try {
+           return Commands.run(() -> {
+               Pose2d pose = this.getPose();
+               this.setControl(new SwerveRequest.FieldCentric()
+                       .withVelocityX(Constants.ChoreoConstants.xController.calculate(pose.getX(), targetPose.getX()))
+                       .withVelocityY(Constants.ChoreoConstants.yController.calculate(pose.getY(), targetPose.getY()))
+                       .withRotationalRate(thetaController.calculate(pose.getRotation().getRadians(),
+                               targetPose.getRotation().getRadians())));
+           }).onlyWhile(() -> (this.getPose().minus(targetPose).getTranslation().getNorm() >= Constants.AutonomousConstants.kStartEndDistanceError && this.getPose().minus(targetPose).getRotation().getRadians() >= Constants.AutonomousConstants.kStartEndRotationError));
        } catch (Exception e) {
         return Commands.none();
        }
     }
 
     public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, double yDistance, Pose2d sensorOffset) {
-        return run( () -> {
+        return run( () -> { // TODO: "fix because its wrong" -- lazare, 20206
             double xDistanceFromSensor = xDistance - sensorOffset.getX();
             double yDistanceFromSensor = yDistance - sensorOffset.getY();
             double distanceTriangleBaseAngle = (Math.PI/2) - sensorOffset.getRotation().getRadians();

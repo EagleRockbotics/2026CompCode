@@ -82,7 +82,7 @@ public class RobotContainer {
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
   private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
   private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem);
-  private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand(driveStick);
+  private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand();
   private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
   private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
@@ -265,12 +265,29 @@ public class RobotContainer {
     traj.done().onTrue(m_drivetrain.goToEndPose(traj));
     return routine;
   }
-  
-  public AutoRoutine visionHeadingStdevTuning(AutoFactory factory) {
-    AutoRoutine routine = factory.newRoutine("visionHeadingStdevTuning");
-    AutoTrajectory traj = ChoreoTraj.HeadingStdevTuning.asAutoTraj(routine);
-    routine.active().onTrue(Commands.sequence(traj.resetOdometry(), traj.cmd()));
-    traj.done().onTrue(m_drivetrain.goToEndPose(traj));
+
+  public AutoRoutine autoElevatorRoutine(AutoFactory factory) {
+    AutoRoutine routine = factory.newRoutine("autoElevatorRoutine");
+    AutoTrajectory traj = ChoreoTraj.AutonomousMoveToElevatorPosition1.asAutoTraj(routine);
+    routine.active().onTrue(Commands.sequence(
+      traj.resetOdometry(), traj.cmd(),
+      m_elevatorSubsystem.runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
+      m_elevatorSubsystem.raiseElevatorCommand(),
+      m_elevatorSubsystem.moveToLadder(m_drivetrain),
+      m_elevatorSubsystem.lowerElevatorCommand()
+    ));
+    return routine;
+  }
+
+  public AutoRoutine testMainRoutine(AutoFactory factory) {
+    // Robot should start at ~(2.0 m, 2.0 m); resets pose from vision samples, aligns to desired starting pose, shoots, and then runs the auto elevator
+    AutoRoutine routine = factory.newRoutine("testMainRoutine");
+    routine.active().onTrue(Commands.sequence(
+      m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
+      m_drivetrain.moveToPose(Constants.AutonomousConstants.testAutoAlignPose),
+      m_shooterSubsystem.autoShooterCommand().getFirst(),
+      autoElevatorRoutine(factory).cmd()
+    ));
     return routine;
   }
   

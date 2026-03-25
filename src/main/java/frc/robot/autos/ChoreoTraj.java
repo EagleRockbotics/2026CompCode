@@ -24,7 +24,21 @@ public record ChoreoTraj(
     Pose2d initialPoseBlue,
     Pose2d endPoseBlue
 ) {
-    public static final ChoreoTraj NewPath = new ChoreoTraj(
+    public static final ChoreoTraj HeadingStdevTuning = new ChoreoTraj(
+	    "HeadingStdevTuning",
+	    OptionalInt.empty(),
+	    8.15069,
+	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
+	    new Pose2d(0, 0, Rotation2d.fromRadians(0))
+	);
+	public static final ChoreoTraj MovingSpinny = new ChoreoTraj(
+	    "MovingSpinny",
+	    OptionalInt.empty(),
+	    1.0688,
+	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
+	    new Pose2d(1, 1, Rotation2d.fromRadians(3.142))
+	);
+	public static final ChoreoTraj NewPath = new ChoreoTraj(
 	    "NewPath",
 	    OptionalInt.empty(),
 	    2.05242,
@@ -34,23 +48,16 @@ public record ChoreoTraj(
 	public static final ChoreoTraj Spinny = new ChoreoTraj(
 	    "Spinny",
 	    OptionalInt.empty(),
-	    2.09486,
+	    2.11243,
 	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
 	    new Pose2d(0, 0, Rotation2d.fromRadians(3.142))
 	);
-	public static final ChoreoTraj MovingSpinny = new ChoreoTraj(
-	    "MovingSpinny",
+	public static final ChoreoTraj AutonomousMoveToElevatorPosition1 = new ChoreoTraj(
+	    "AutonomousMoveToElevatorPosition1",
 	    OptionalInt.empty(),
-	    1.0688,
-	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
-	    new Pose2d(1, 1, Rotation2d.fromRadians(3.142))
-	);
-	public static final ChoreoTraj HeadingStdevTuning = new ChoreoTraj(
-	    "HeadingStdevTuning",
-	    OptionalInt.empty(),
-	    8.15069,
-	    new Pose2d(0, 0, Rotation2d.fromRadians(0)),
-	    new Pose2d(0, 0, Rotation2d.fromRadians(0))
+	    0.58542,
+	    new Pose2d(2, 2, Rotation2d.fromRadians(0)),
+	    new Pose2d(1.6, 3.1, Rotation2d.fromRadians(0))
 	);
 
     /**
@@ -58,10 +65,11 @@ public record ChoreoTraj(
      * This allows for trajectory data to be looked up with strings during runtime.
      */
     public static final Map<String, ChoreoTraj> ALL_TRAJECTORIES = Map.ofEntries(
-    	Map.entry("NewPath", NewPath),
-		Map.entry("Spinny", Spinny),
+    	Map.entry("HeadingStdevTuning", HeadingStdevTuning),
 		Map.entry("MovingSpinny", MovingSpinny),
-		Map.entry("HeadingStdevTuning", HeadingStdevTuning)
+		Map.entry("NewPath", NewPath),
+		Map.entry("Spinny", Spinny),
+		Map.entry("AutonomousMoveToElevatorPosition1", AutonomousMoveToElevatorPosition1)
     );
 
     /**

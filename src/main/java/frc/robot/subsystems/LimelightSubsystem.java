@@ -6,10 +6,13 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Micro;
 
+import java.util.ArrayList;
+
 import com.ctre.phoenix6.hardware.Pigeon2;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
@@ -17,6 +20,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.util.struct.Struct;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.LimelightHelpers;
@@ -91,5 +95,19 @@ public class LimelightSubsystem extends SubsystemBase {
       doRejectUpdate = true;
     }
     return doRejectUpdate;
+  }
+
+  public Command resetOdometryFromVisionPoseSamples(CommandSwerveDrivetrain drivetrain) {
+    ArrayList<Pose2d> sampledPoses = new ArrayList<Pose2d>();
+    return Commands.sequence(Commands.run(() -> {
+      sampledPoses.add(getPoseEstimate().pose);
+    }).withTimeout(Constants.AutonomousConstants.kVisionPoseSampleTimeout), Commands.runOnce(() -> {
+      Pose2d averagePose = new Pose2d();
+      for (Pose2d pose : sampledPoses) {
+        averagePose.plus(new Transform2d(pose.getTranslation(), pose.getRotation()));
+      }
+      averagePose.div(sampledPoses.size());
+      drivetrain.resetPose(averagePose);
+    }));
   }
 }
