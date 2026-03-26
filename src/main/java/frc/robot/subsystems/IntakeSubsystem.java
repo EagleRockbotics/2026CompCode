@@ -22,6 +22,8 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.XboxController;
 
 import frc.robot.Constants;
@@ -42,6 +44,10 @@ public class IntakeSubsystem extends SubsystemBase {
   public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
   public Trigger resetEncoderTrigger = new Trigger(() -> {return false;});
 
+  private final DoublePublisher m_encoderPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Intake/Encoder").publish();
+  private final DoublePublisher m_anglePublisher = NetworkTableInstance.getDefault().getDoubleTopic("Intake/Angle").publish();
+
+
   public IntakeSubsystem() {
     m_RightEncoder.setPosition(0);
   }
@@ -61,9 +67,13 @@ public class IntakeSubsystem extends SubsystemBase {
   // I can understand what "20" means in this function but putting it in a constant would make the code easier to read
   // The output of the encoder further needs to be converted into radians
   public double calculateMotorOutput(double desiredAngle) {
-    double output = (m_pid.calculate(Math.toRadians(m_RightEncoder.getPosition()) / Constants.IntakeConstants.k_GearRatio, desiredAngle)
+    double output = (m_pid.calculate((m_RightEncoder.getPosition() * (2*Math.PI)) / Constants.IntakeConstants.k_GearRatio, desiredAngle)
      + m_armFeed.calculate(desiredAngle, /* m_RightEncoder.getVelocity().getValueAsDouble() / 20 */ Constants.IntakeConstants.k_TargetVelocity));
+     m_anglePublisher.set((m_RightEncoder.getPosition() * (2*Math.PI)/ Constants.IntakeConstants.k_GearRatio));
+     m_encoderPublisher.set(m_RightEncoder.getPosition());
     return output;
+  
+
   }
 
   public Command runIntakeCommand() {

@@ -23,6 +23,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.networktables.DoublePublisher;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -64,6 +66,10 @@ public class ElevatorSubsystem extends SubsystemBase {
 
   public boolean useDistanceSensor = true;
 
+  private final DoublePublisher encoderPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Elevator/Encoder").publish();
+  private final DoublePublisher PIDOutputPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Elevator/PIDOutput").publish();
+  private final DoublePublisher feedforwardOutputPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Elevator/FeedforwardOutput").publish();
+
   public ElevatorSubsystem() {
     m_encoder.setPosition(0);
     m_motor.configure(m_motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
@@ -97,9 +103,13 @@ public class ElevatorSubsystem extends SubsystemBase {
   }
   public Command setElevatorVoltageCommand() {
     return Commands.run(() -> {
-      if (elevatorEnabled) {
-        m_motor.setVoltage(m_profiledController.calculate(m_encoder.getPosition()) + m_feedforward.calculate(m_profiledController.getSetpoint().velocity));
-      }
+      double PIDOutput = m_profiledController.calculate(m_encoder.getPosition());
+      double feedforwardOutput = m_feedforward.calculate(m_profiledController.getSetpoint().velocity);
+      m_motor.setVoltage(PIDOutput + feedforwardOutput);
+
+      encoderPublisher.set(m_encoder.getPosition());
+      PIDOutputPublisher.set(PIDOutput);
+      feedforwardOutputPublisher.set(feedforwardOutput);
     });
   }
   public Command enableElevatorCommand() {
@@ -188,7 +198,7 @@ public class ElevatorSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-
+    encoderPublisher.set(m_encoder.getPosition());
   }
 
   @Override
