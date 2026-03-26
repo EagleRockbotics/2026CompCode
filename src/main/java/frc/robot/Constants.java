@@ -112,7 +112,8 @@ public final class Constants {
     public static final double k_Kg = 0;
     public static final double k_Kv = 0;
 
-    public static final double k_TargetAngle = 90;
+    public static final double k_TargetAngle = 0;
+    public static final double k_UpAngle = (80*Math.PI)/180;
     }
 
   public static class ElevatorConstants {
