@@ -58,6 +58,7 @@ public class LimelightSubsystem extends SubsystemBase {
       return new Pose2d(1, 0, new Rotation2d(0));
     }
     var out = new Pose2d(new Translation2d(value[0], value[1]), new Rotation2d(value[5] * Math.PI / 180));
+    posePublisher.set(out);
     return out;
 
   }
