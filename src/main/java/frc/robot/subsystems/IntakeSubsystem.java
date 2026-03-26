@@ -7,9 +7,11 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import com.revrobotics.AbsoluteEncoder;
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkAbsoluteEncoderSim;
 import com.revrobotics.spark.SparkAbsoluteEncoder;
 import com.revrobotics.spark.SparkFlex;
@@ -34,10 +36,11 @@ public class IntakeSubsystem extends SubsystemBase {
   private final PIDController m_pid  =  new PIDController(Constants.IntakeConstants.k_Kp, 0, Constants.IntakeConstants.k_Kd);
 
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
-  private final CANcoder m_RightEncoder = new CANcoder(Constants.IntakeConstants.k_RightEncoderId);
+  private final RelativeEncoder m_RightEncoder = m_motorRightSpin.getEncoder();
   private final ArmFeedforward m_armFeed = new ArmFeedforward(Constants.IntakeConstants.k_Ks, Constants.IntakeConstants.k_Kg, Constants.IntakeConstants.k_Kv);
   public Trigger runIntakeTrigger = new Trigger(() -> {return false;});
   public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
+  public Trigger resetEncoderTrigger = new Trigger(() -> {return false;});
 
   public IntakeSubsystem() {
     m_RightEncoder.setPosition(0);
@@ -48,7 +51,7 @@ public class IntakeSubsystem extends SubsystemBase {
           
           runIntakeTrigger.whileTrue(runIntakeCommand());
           runIntakeTrigger.whileFalse(returnToUpPositionCommand());
-  
+          resetEncoderTrigger.onTrue(resetEncoderCommand().onlyIf(() -> RobotModeTriggers.test().getAsBoolean()));
         });
   }
 
@@ -57,13 +60,11 @@ public class IntakeSubsystem extends SubsystemBase {
   // Also you should never have numbers in your code with no description of what they are.
   // I can understand what "20" means in this function but putting it in a constant would make the code easier to read
   // The output of the encoder further needs to be converted into radians
-  public double calculateMotorOutput(double radian) {
-    double output = (m_pid.calculate(m_RightEncoder.getPosition().getValueAsDouble() / 20, radian/(2*Math.PI) )
-     + m_armFeed.calculate(radian, /* m_RightEncoder.getVelocity().getValueAsDouble() / 20 */ 0));
+  public double calculateMotorOutput(double desiredAngle) {
+    double output = (m_pid.calculate(Math.toRadians(m_RightEncoder.getPosition()) / Constants.IntakeConstants.k_GearRatio, desiredAngle)
+     + m_armFeed.calculate(desiredAngle, /* m_RightEncoder.getVelocity().getValueAsDouble() / 20 */ Constants.IntakeConstants.k_TargetVelocity));
     return output;
   }
-
- 
 
   public Command runIntakeCommand() {
     return Commands.run(() -> {
@@ -77,11 +78,17 @@ public class IntakeSubsystem extends SubsystemBase {
    
   } 
   
-   public Command returnToUpPositionCommand() {
-      return Commands.run(() -> {
-        m_motorRightSpin.set(calculateMotorOutput(Constants.IntakeConstants.k_UpAngle));
-      });
-    }
+  public Command returnToUpPositionCommand() {
+    return Commands.run(() -> {
+      m_motorRightSpin.set(calculateMotorOutput(Constants.IntakeConstants.k_UpAngle));
+    });
+  }
+  
+  public Command resetEncoderCommand() {
+    return Commands.runOnce(() -> {
+      m_RightEncoder.setPosition(0);
+    });
+  }
 
   @Override
   public void periodic() {

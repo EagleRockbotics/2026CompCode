@@ -196,7 +196,7 @@ public class ShooterSubsystem extends SubsystemBase {
     return Commands.run(() -> {
     m_driveMotor.getClosedLoopController().setSetpoint(rpm, ControlType.kVelocity);
     rpmPublisher.set(this.m_driveMotor.getEncoder().getVelocity());
-    if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffestBeforeShootFails) {
+    if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffsetBeforeShootFails) {
       m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
       m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
     } else {
@@ -233,7 +233,7 @@ public class ShooterSubsystem extends SubsystemBase {
         
         double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
         double y = relativeTargetPosition.getY();
-        double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
+        double targetAngle = Math.atan(y/x) + Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
         
         new Rotation2d();
         m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
@@ -250,7 +250,7 @@ public class ShooterSubsystem extends SubsystemBase {
         
         double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
         double y = relativeTargetPosition.getY();
-        double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
+        double targetAngle = Math.atan(y/x) + Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
         
         m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle + angleOffset)));
         new Rotation2d();

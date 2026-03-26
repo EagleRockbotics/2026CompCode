@@ -173,6 +173,7 @@ public class RobotContainer {
 
     m_intakeSubsytem.runIntakeTrigger = driveStick.y();
     m_intakeSubsytem.reverseIntakeTrigger = driveStick.x();
+    m_intakeSubsytem.resetEncoderTrigger = helperStick.y();
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
     // pressed,
@@ -284,7 +285,7 @@ public class RobotContainer {
     AutoRoutine routine = factory.newRoutine("testMainRoutine");
     routine.active().onTrue(Commands.sequence(
       m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
-      m_drivetrain.moveToPose(Constants.AutonomousConstants.testAutoAlignPose),
+      m_drivetrain.moveToPose(Constants.AutonomousConstants.kTestAutoAlignPose),
       m_shooterSubsystem.autoShooterCommand().getFirst(),
       autoElevatorRoutine(factory).cmd()
     ));

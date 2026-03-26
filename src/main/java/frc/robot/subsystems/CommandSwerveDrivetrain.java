@@ -293,7 +293,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, double yDistance, Pose2d sensorOffset) {
-        return run( () -> { // TODO: "fix because its wrong" -- lazare, 20206
+        return run( () -> {
             double xDistanceFromSensor = xDistance - sensorOffset.getX();
             double yDistanceFromSensor = yDistance - sensorOffset.getY();
             double distanceTriangleBaseAngle = (Math.PI/2) - sensorOffset.getRotation().getRadians();
