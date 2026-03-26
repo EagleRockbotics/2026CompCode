@@ -292,16 +292,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
        }
     }
 
-    public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, double yDistance, Pose2d sensorOffset) {
+    public Command moveToDistanceSensorPoint(CANrange sensor, double xDistance, Pose2d sensorOffset) {
         return run( () -> { // TODO: "fix because its wrong" -- lazare, 20206
             double xDistanceFromSensor = xDistance - sensorOffset.getX();
-            double yDistanceFromSensor = yDistance - sensorOffset.getY();
             double distanceTriangleBaseAngle = (Math.PI/2) - sensorOffset.getRotation().getRadians();
             double distanceTriangleHypotenuse = sensor.getDistance().getValueAsDouble();
 
             this.setControl(new SwerveRequest.RobotCentric()
             .withVelocityX(-Constants.ChoreoConstants.xController.calculate(xDistanceFromSensor, Math.cos(distanceTriangleBaseAngle)*distanceTriangleHypotenuse))
-            .withVelocityY(-Constants.ChoreoConstants.yController.calculate(yDistanceFromSensor, Math.sin(distanceTriangleBaseAngle)*distanceTriangleHypotenuse))
+            .withVelocityY(0)
             .withRotationalRate(0));
 
         });

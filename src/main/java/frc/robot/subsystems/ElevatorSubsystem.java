@@ -180,7 +180,7 @@ public class ElevatorSubsystem extends SubsystemBase {
       Constants.FieldConstants.kLeftLadderPose : Constants.FieldConstants.kRightLadderPose;
     
     if (useDistanceSensor) {
-      return Commands.none(); // TODO: turn into moveToDistanceSensorPoint call
+      return drivetrain.moveToDistanceSensorPoint(distanceSensor, Constants.FieldConstants.kLeftLadderPose.getX() + Constants.SwerveConstants.kRobotLength/2, targetPose);
     } else {
       return drivetrain.moveToPose(targetPose);
     }

@@ -45,6 +45,7 @@ public final class Constants {
     public static final String kCurrentRobot = "comp2025";
 
     public static final double kAirResistanceFactor = 0;
+    public static final double kRobotLength = 0; // with bumpers
   }
 
   public static class SwerveUtilConstants {
