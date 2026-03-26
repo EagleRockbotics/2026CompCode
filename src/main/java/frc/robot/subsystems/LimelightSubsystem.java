@@ -28,12 +28,14 @@ import frc.robot.LimelightHelpers;
 public class LimelightSubsystem extends SubsystemBase {
   /** Creates a new ExampleSubsystem. */
   private final NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight-rock");
+  private final StructPublisher<Pose2d> outPosePublisher;
   private final StructPublisher<Pose2d> posePublisher;
   private final Pigeon2 m_gyro;
 
   public LimelightSubsystem() {
     posePublisher = NetworkTableInstance.getDefault()
         .getStructTopic("Limelight/Pose", Pose2d.struct).publish();
+    outPosePublisher = NetworkTableInstance.getDefault().getStructTopic("Limelight/OutPose", Pose2d.struct).publish();
     m_gyro = new Pigeon2(Constants.kPigeonID);
   }
 
@@ -58,7 +60,7 @@ public class LimelightSubsystem extends SubsystemBase {
       return new Pose2d(1, 0, new Rotation2d(0));
     }
     var out = new Pose2d(new Translation2d(value[0], value[1]), new Rotation2d(value[5] * Math.PI / 180));
-    posePublisher.set(out);
+    outPosePublisher.set(out);
     return out;
 
   }
