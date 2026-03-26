@@ -62,7 +62,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Supplier<Double> xAxis = () -> {return 0d;};
   public Supplier<Double> yAxis = () -> {return 0d;};
 
-  private final StructPublisher m_targetAnglePublisher = NetworkTableInstance.getDefault().getStructTopic("Shooter/FacingTarget", Pose2d.struct).publish();
+  private final StructPublisher<Pose2d> m_targetAnglePublisher = NetworkTableInstance.getDefault().getStructTopic("Shooter/FacingTarget", Pose2d.struct).publish();
   private final DoublePublisher rpmPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/RPM").publish();
   private final DoublePublisher targetVelocityPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/Target Velocity").publish();
 
@@ -236,7 +236,6 @@ public class ShooterSubsystem extends SubsystemBase {
       rpmPublisher.set(m_driveMotor.getEncoder().getVelocity());}));
   }
 
-  @SuppressWarnings("unchecked")
   public SwerveRequest getAimRequest() {
     Translation2d hubPosition = getCurrentHubPosition();
     Pose2d currentPose = getCurrentPose();
@@ -256,7 +255,6 @@ public class ShooterSubsystem extends SubsystemBase {
       .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
-  @SuppressWarnings("unchecked")
   public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Pose2d currentPose) {
         Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
         Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
