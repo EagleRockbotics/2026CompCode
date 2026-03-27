@@ -44,6 +44,7 @@ public final class Constants {
     public static final double kAngularAccelerationFactor = 4;
     public static final String kCurrentRobot = "comp2025";
     public static final double kAirResistanceFactor = 0;
+    public static final double kRobotLength = 12;
     public static final boolean reverseFront = true; // whether we switch front modules with rear modules
   }
 
