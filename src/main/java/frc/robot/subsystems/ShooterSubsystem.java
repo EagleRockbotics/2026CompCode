@@ -14,38 +14,28 @@ import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.XboxController.Axis;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants;
-import frc.robot.LimelightHelpers;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
 
 import java.util.function.Supplier;
 
-import javax.sql.XAConnection;
 
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
-import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.SparkClosedLoopController;
 
 public class ShooterSubsystem extends SubsystemBase {
   private final SparkFlex m_driveMotor = new SparkFlex(Constants.ShooterConstants.kDriveMotorId, MotorType.kBrushless);
-  private final SparkClosedLoopController m_motorController = m_driveMotor.getClosedLoopController();
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
   private final CommandSwerveDrivetrain m_drivetrain;
   private final LimelightSubsystem m_limelightSubsystem;
-  private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future?
 
   // SHOOTER MODE CONFIGURATION
   private final boolean forceLimelight = true;
@@ -61,7 +51,7 @@ public class ShooterSubsystem extends SubsystemBase {
   public Supplier<Double> xAxis = () -> {return 0d;};
   public Supplier<Double> yAxis = () -> {return 0d;};
 
-  private final StructPublisher m_targetAnglePublisher = NetworkTableInstance.getDefault().getStructTopic("Shooter/FacingTarget", Pose2d.struct).publish();
+  private final StructPublisher<Pose2d> m_targetAnglePublisher = NetworkTableInstance.getDefault().getStructTopic("Shooter/FacingTarget", Pose2d.struct).publish();
   private final DoublePublisher rpmPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/RPM").publish();
   private final DoublePublisher targetVelocityPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Shooter/Target Velocity").publish();
 
@@ -206,7 +196,6 @@ public class ShooterSubsystem extends SubsystemBase {
    }).finallyDo(() -> {m_indexerBeltMotor.set(0); m_indexerRollerMotor.set(0);});
   }
 
-  @SuppressWarnings("unchecked")
   public SwerveRequest getAimRequest() {
     Translation2d hubPosition = getCurrentHubPosition();
     Pose2d currentPose = getCurrentPose();
@@ -219,6 +208,7 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
+    m_drivetrain.resetPose(currentPose);
     return new SwerveRequest.FieldCentricFacingAngle()
       .withTargetDirection(Rotation2d.fromRadians(targetAngle))
       .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
@@ -226,40 +216,6 @@ public class ShooterSubsystem extends SubsystemBase {
       .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
-  @SuppressWarnings("unchecked")
-  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Pose2d currentPose) {
-        Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-        Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
-        
-        double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
-        double y = relativeTargetPosition.getY();
-        double targetAngle = Math.atan(y/x) + Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
-        
-        new Rotation2d();
-        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
-        return new SwerveRequest.FieldCentricFacingAngle()
-        .withTargetDirection(Rotation2d.fromRadians(targetAngle))
-        .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
-        .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
-        .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
-  }
-
-  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset, Pose2d currentPose) {
-        Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-        Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
-        
-        double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
-        double y = relativeTargetPosition.getY();
-        double targetAngle = Math.atan(y/x) + Math.acos(Constants.ShooterConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
-        
-        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle + angleOffset)));
-        new Rotation2d();
-        return new SwerveRequest.FieldCentricFacingAngle()
-        .withTargetDirection(Rotation2d.fromRadians(targetAngle + angleOffset))
-        .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
-        .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
-        .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
-  }
 
   /**
    * Example command factory method.

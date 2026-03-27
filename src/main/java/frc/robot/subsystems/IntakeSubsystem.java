@@ -85,7 +85,6 @@ public class IntakeSubsystem extends SubsystemBase {
       m_motorRightSpin.set(calculateMotorOutput(Constants.IntakeConstants.k_TargetAngle));
       m_motorRightIntake.set(inversionFactor*Constants.IntakeConstants.k_IntakePower);
     });
-   
   } 
   
   public Command returnToUpPositionCommand() {
@@ -97,6 +96,13 @@ public class IntakeSubsystem extends SubsystemBase {
   public Command resetEncoderCommand() {
     return Commands.runOnce(() -> {
       m_RightEncoder.setPosition(0);
+    });
+  }
+
+  public Command publishAngleCommand() {
+    return Commands.run(() -> {
+        m_anglePublisher.set((m_RightEncoder.getPosition() * (2*Math.PI)/ Constants.IntakeConstants.k_GearRatio));
+        m_encoderPublisher.set(m_RightEncoder.getPosition());
     });
   }
 

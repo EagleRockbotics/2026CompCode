@@ -102,10 +102,10 @@ public final class Constants {
     public static final int k_RightSpinId = 0;
     public static final int k_RightEncoderId = 0;
     public static final double k_IntakePower = 0;
-    public static final double k_Kp = 0;
+    public static final double k_Kp = 0.1;
     public static final double k_Kd = 0;
     public static final double k_Ks = 0;
-    public static final double k_Kg = 0;
+    public static final double k_Kg = 0.01;
     public static final double k_Kv = 0;
 
     public static final double k_TargetAngle = 0;
