@@ -28,10 +28,10 @@ public final class Constants {
   public static final int kDistanceSensorID = 0; // TODO: set CANrange ID
 
   public static class FieldConstants {
-    public static final Translation2d kHubPosition = new Translation2d(0, 0); // TODO: Configure
+    public static final Translation2d kHubPosition = new Translation2d(4.559, 4.02); // TODO: Configure
     public static final Pose2d kLeftLadderPose = new Pose2d(0,0,new Rotation2d(0)); // Pose where robot is in position, not the actual field position!!!
     public static final Pose2d kRightLadderPose = new Pose2d(0,1,new Rotation2d(0)); // Pose where robot is in position, not the actual field position!!!
-    public static final double kHubHeight = 0; // Todo: height of hub opening
+    public static final double kHubHeight = 1.828; // Todo: height of hub opening
   }
 
   public static class OperatorConstants {
@@ -75,21 +75,21 @@ public final class Constants {
   }
 
   public static class ShooterConstants {
-    public static final double kShooterHeight = 0.381; // TODO: height of ball as it leaves shooter
-    public static final double kShooterAngle = 0; // TODO: angle (IN RADIANS!!!)
-    public static final int kDriveMotorId = 0; // TODO: Configure
-    public static double kShooterDistanceFromCenter = 1;
-    public static double kMinRobotDistanceFromHub = (Constants.FieldConstants.kHubHeight - kShooterHeight)/Math.tan(kShooterAngle);
-    public static final double kP = 0;
+    public static final double kShooterHeight = 0.44; // TODO: Measure
+    public static final double kShooterAngle = Math.toRadians(61.9);
+    public static final int kDriveMotorId = 18;
+    public static double kShooterDistanceFromCenter = 0.24;
+    public static double kMinRobotDistanceFromHub = 2.47333;
+    public static final double kP = 0.00055;
     public static final double kI = 0;
     public static final double kD = 0;
-    public static final double kF = 0;
+    public static final double kF = 0.000153;
     
-    public static final int kIndexerBeltMotorId = 0;
-    public static final int kIndexerRollerMotorId = 0;
+    public static final int kIndexerBeltMotorId = 17;
+    public static final int kIndexerRollerMotorId = 20;
 
-    public static final double kIndexerBeltPower = 0.9;
-    public static final double kIndexerRollerPower = -0.9;
+    public static final double kIndexerBeltPower = 1;
+    public static final double kIndexerRollerPower = -1;
 
     public static final double kMaxRPMOffsetBeforeShootFails = 150; //guess. please change
     public static final double kPassRPM = 2500;
@@ -101,25 +101,24 @@ public final class Constants {
 
   public static class IntakeConstants {
     public static final double kdt = 0.02;
-    public static final int k_RightIntakeId = 0;
-    public static final int k_RightSpinId = 0;
-    public static final int k_RightEncoderId = 0;
-    public static final double k_IntakePower = 0;
-    public static final double k_Kp = 0.1;
+    public static final int k_RightIntakeId = 1;
+    public static final int k_RightSpinId = 2;
+    public static final double k_IntakePower = 1; 
+    public static final double k_Kp = 0.25;
     public static final double k_Kd = 0;
     public static final double k_Ks = 0;
-    public static final double k_Kg = 0.01;
+    public static final double k_Kg = 0.1;
     public static final double k_Kv = 0;
 
-    public static final double k_TargetAngle = 0;
-    public static final double k_UpAngle = (80*Math.PI)/180;
+    public static final double k_TargetAngle = 0.1;
+    public static final double k_UpAngle = 1.3;
 
-    public static final int k_GearRatio = 20;
+    public static final int k_GearRatio = -20;
     public static final double k_TargetVelocity = 0;
     }
 
   public static class ElevatorConstants {
-    public static final int kElevatorMotorID = 0;
+    public static final int kElevatorMotorID = 19;
     public static final int kLeftServoChannel = 0;
     public static final int kRightServoChannel = 0;
     public static final int kTopServoChannel = 0;

@@ -83,7 +83,7 @@ public class RobotContainer {
   private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
   private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem);
   private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand();
-  private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
+  // private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
   private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
   // Code copied from CTRE Swerve template
@@ -114,11 +114,11 @@ public class RobotContainer {
     m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
     m_autoHandler.publishChooser();
     
-    CommandScheduler.getInstance().schedule(
-      Commands.repeatingSequence(setRobotLimelightOrientationCommand()
-      // , addVisionMeasurementCommand()
-      )
-    );
+    // CommandScheduler.getInstance().schedule(
+    //   Commands.repeatingSequence(setRobotLimelightOrientationCommand()
+    //   // , addVisionMeasurementCommand()
+    //   )
+    // );
   }
 
   /**
@@ -151,25 +151,33 @@ public class RobotContainer {
     joystick.start().and(joystick.y()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kForward));
     joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
 
+    helperStick.x().and(RobotModeTriggers.test()).whileTrue(m_shooterSubsystem.driveAtInputRPM());
+   
+
+
     // Reset the field-centric heading on left bumper press.
     // joystick.leftBumper().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
 
     m_drivetrain.registerTelemetry(logger::telemeterize);
 
-    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger();
+    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
     m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
     m_shooterSubsystem.xAxis = () -> {return -joystick.getLeftX();};
     m_shooterSubsystem.yAxis = () -> {return -joystick.getLeftY();};
 
-    m_elevatorSubsystem.backLeftButtonAxis = () -> {return helperStick.getLeftTriggerAxis();};
-    m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
-    m_elevatorSubsystem.backLeftButtonTrigger = helperStick.leftTrigger();
-    m_elevatorSubsystem.backRightButtonTrigger = helperStick.rightTrigger();
-    m_elevatorSubsystem.enableElevatorTrigger = driveStick.b();
-    m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
-    m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
-    m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
-    m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
+     joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(m_drivetrain.applyRequest(m_shooterSubsystem::getPointRequest));
+     joystick.y().and(RobotModeTriggers.test()).onTrue(resetGyro());
+     joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {m_drivetrain.resetPose(new Pose2d());}));
+
+    // m_elevatorSubsystem.backLeftButtonAxis = () -> {return helperStick.getLeftTriggerAxis();};
+    // m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
+    // m_elevatorSubsystem.backLeftButtonTrigger = helperStick.leftTrigger();
+    // m_elevatorSubsystem.backRightButtonTrigger = helperStick.rightTrigger();
+    // m_elevatorSubsystem.enableElevatorTrigger = driveStick.b();
+    // m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
+    // m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
+    // m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
+    // m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
 
     m_intakeSubsytem.runIntakeTrigger = driveStick.y();
     m_intakeSubsytem.reverseIntakeTrigger = driveStick.x();
@@ -188,22 +196,22 @@ public class RobotContainer {
 
   public Command getTeleopCommand() {
     return Commands.parallel(
-        m_drivetrain.applyRequest(this::getDriveRequest), m_shooterPair.getFirst());
+        m_drivetrain.applyRequest(this::getDriveRequest), m_shooterPair.getFirst(), m_intakeSubsytem.runCommand());
   }
 
   private SwerveRequest getDriveRequest() {
     if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean()) {
       return m_shooterPair.getSecond().get();
     }
-    return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier)
-      .withVelocityY(-joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
-      .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
+    return drive.withVelocityX(joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier)
+      .withVelocityY(joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
+      .withRotationalRate(joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
   }
 
   
 
   public Command getTestCommand() {
-    return Commands.parallel(m_intakeSubsytem.publishAngleCommand());
+    return m_intakeSubsytem.publishAngleCommand();
   }
 
   public Command getAutoCommand() {
@@ -271,11 +279,11 @@ public class RobotContainer {
     AutoRoutine routine = factory.newRoutine("autoElevatorRoutine");
     AutoTrajectory traj = ChoreoTraj.AutonomousMoveToElevatorPosition1.asAutoTraj(routine);
     routine.active().onTrue(Commands.sequence(
-      traj.resetOdometry(), traj.cmd(),
-      m_elevatorSubsystem.runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
-      m_elevatorSubsystem.raiseElevatorCommand(),
-      m_elevatorSubsystem.moveToLadder(m_drivetrain),
-      m_elevatorSubsystem.lowerElevatorCommand()
+      // traj.resetOdometry(), traj.cmd(),
+      // m_elevatorSubsystem.runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
+      // m_elevatorSubsystem.raiseElevatorCommand(),
+      // m_elevatorSubsystem.moveToLadder(m_drivetrain),
+      // m_elevatorSubsystem.lowerElevatorCommand()
     ));
     return routine;
   }
