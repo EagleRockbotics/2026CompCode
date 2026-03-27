@@ -15,38 +15,28 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.XboxController.Axis;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants;
-import frc.robot.LimelightHelpers;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
 
 import java.util.function.Supplier;
 
-import javax.sql.XAConnection;
 
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
-import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.SparkClosedLoopController;
 
 public class ShooterSubsystem extends SubsystemBase {
   private final SparkFlex m_driveMotor = new SparkFlex(Constants.ShooterConstants.kDriveMotorId, MotorType.kBrushless);
-  private final SparkClosedLoopController m_motorController = m_driveMotor.getClosedLoopController();
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
   private final CommandSwerveDrivetrain m_drivetrain;
   private final LimelightSubsystem m_limelightSubsystem;
-  private final XboxController m_controller = new XboxController(Constants.OperatorConstants.kDriverControllerPort); // TODO: Switch to helper controller in the future?
 
   // SHOOTER MODE CONFIGURATION
   private final boolean forceLimelight = true;
@@ -215,7 +205,7 @@ public class ShooterSubsystem extends SubsystemBase {
     return Commands.run(() -> {
     m_driveMotor.getClosedLoopController().setSetpoint(rpm, ControlType.kVelocity);
     rpmPublisher.set(this.m_driveMotor.getEncoder().getVelocity());
-    if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffestBeforeShootFails) {
+    if (Math.abs(this.m_driveMotor.getEncoder().getVelocity() - rpm) < Constants.ShooterConstants.kMaxRPMOffsetBeforeShootFails) {
       m_indexerBeltMotor.set(Constants.ShooterConstants.kIndexerBeltPower);
       m_indexerRollerMotor.set(Constants.ShooterConstants.kIndexerRollerPower);
     } else {
@@ -248,6 +238,7 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
+    m_drivetrain.resetPose(currentPose);
     return new SwerveRequest.FieldCentricFacingAngle()
       .withTargetDirection(Rotation2d.fromRadians(targetAngle))
       .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
@@ -255,40 +246,7 @@ public class ShooterSubsystem extends SubsystemBase {
       .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
   }
 
-  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, Pose2d currentPose) {
-        Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-        Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
-        
-        double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
-        double y = relativeTargetPosition.getY();
-        double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
-        
-        new Rotation2d();
-        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle)));
-        return new SwerveRequest.FieldCentricFacingAngle()
-        .withTargetDirection(Rotation2d.fromRadians(targetAngle))
-        .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
-        .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
-        .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
-  }
-
-  public SwerveRequest driveShooterFacingPoint(Translation2d targetPoint, double angleOffset, Pose2d currentPose) {
-        Translation2d currentPosition = new Translation2d(currentPose.getX(), currentPose.getY());
-        Translation2d relativeTargetPosition = currentPosition.plus(targetPoint);
-        
-        double x = relativeTargetPosition.getX()==0 ? 0.001 : relativeTargetPosition.getX();
-        double y = relativeTargetPosition.getY();
-        double targetAngle = Math.atan(y/x) + Math.acos(Constants.SwerveUtilConstants.kShooterDistanceFromCenter/Math.sqrt(Math.pow(x, 2)+Math.pow(y,2))) + Math.signum(x)*90;
-        
-        m_targetAnglePublisher.set(new Pose2d(currentPose.getTranslation(), Rotation2d.fromRadians(targetAngle + angleOffset)));
-        new Rotation2d();
-        return new SwerveRequest.FieldCentricFacingAngle()
-        .withTargetDirection(Rotation2d.fromRadians(targetAngle + angleOffset))
-        .withHeadingPID(Constants.ChoreoConstants.kP_theta, Constants.ChoreoConstants.kI_theta, Constants.ChoreoConstants.kD_theta)
-        .withVelocityX(xAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed)
-        .withVelocityY(yAxis.get()*Constants.ShooterConstants.kMaxScoringRobotSpeed);
-  }
-
+  
   /**
    * Example command factory method.
    *

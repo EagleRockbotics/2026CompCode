@@ -36,20 +36,15 @@ public final class Constants {
 
   public static class OperatorConstants {
     public static final int kDriverControllerPort = 0;
-    public static final int kHelperControllerPort = 0;
+    public static final int kHelperControllerPort = 1;
   }
 
   public static class SwerveConstants {
     public static final double kDeadband = 0.1;
     public static final double kAngularAccelerationFactor = 4;
     public static final String kCurrentRobot = "comp2025";
-
     public static final double kAirResistanceFactor = 0;
-    public static final double kRobotLength = 0; // with bumpers
-  }
-
-  public static class SwerveUtilConstants {
-    public static double kShooterDistanceFromCenter = 1;
+    public static final boolean reverseFront = true; // whether we switch front modules with rear modules
   }
 
   public static class ChoreoConstants {
@@ -75,7 +70,7 @@ public final class Constants {
     public static final double kAutoElevatorTopServoTimeout = 0.5;
     public static final double kStartEndDistanceError = 0.01;
     public static final double kStartEndRotationError = 0.01;
-    public static final Pose2d testAutoAlignPose = new Pose2d(2, 2, new Rotation2d(0)); // TODO: update if needed
+    public static final Pose2d kTestAutoAlignPose = new Pose2d(2, 2, new Rotation2d(0)); // TODO: update if needed
   }
 
   public static class ShooterConstants {
@@ -95,7 +90,7 @@ public final class Constants {
     public static final double kIndexerBeltPower = 0.9;
     public static final double kIndexerRollerPower = -0.9;
 
-    public static final double kMaxRPMOffestBeforeShootFails = 150; //guess. please change
+    public static final double kMaxRPMOffsetBeforeShootFails = 150; //guess. please change
     public static final double kPassRPM = 2500;
 
     public static final double kMaxScoringRobotSpeed = 1; //guess. in meters per second
@@ -109,13 +104,17 @@ public final class Constants {
     public static final int k_RightSpinId = 0;
     public static final int k_RightEncoderId = 0;
     public static final double k_IntakePower = 0;
-    public static final double k_Kp = 0;
+    public static final double k_Kp = 0.1;
     public static final double k_Kd = 0;
     public static final double k_Ks = 0;
-    public static final double k_Kg = 0;
+    public static final double k_Kg = 0.01;
     public static final double k_Kv = 0;
 
-    public static final double k_TargetAngle = 90;
+    public static final double k_TargetAngle = 0;
+    public static final double k_UpAngle = (80*Math.PI)/180;
+
+    public static final int k_GearRatio = 20;
+    public static final double k_TargetVelocity = 0;
     }
 
   public static class ElevatorConstants {
