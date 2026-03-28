@@ -125,7 +125,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double calculateRPMFromVelocity(double velocity) { // TODO: do this
-    return 500 * velocity;
+    return 676.6*velocity+2866; // empirical, bound to change
   }
 
   public double calculateTargetAngle() { // calculates target angle while accounting for useShooterOffsetCompensation
