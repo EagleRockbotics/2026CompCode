@@ -28,7 +28,8 @@ public final class Constants {
   public static final int kDistanceSensorID = 0; // TODO: set CANrange ID
 
   public static class FieldConstants {
-    public static final Translation2d kHubPosition = new Translation2d(4.559, 4.02); // TODO: Configure
+    public static final Translation2d kBlueHubPosition = new Translation2d(4.559, 4.02); // TODO: Configure
+    public static final Translation2d kRedHubPosition = new Translation2d(11.593, 4.02);
     public static final Pose2d kLeftLadderPose = new Pose2d(0,0,new Rotation2d(0)); // Pose where robot is in position, not the actual field position!!!
     public static final Pose2d kRightLadderPose = new Pose2d(0,1,new Rotation2d(0)); // Pose where robot is in position, not the actual field position!!!
     public static final double kHubHeight = 1.828; // Todo: height of hub opening
@@ -45,7 +46,10 @@ public final class Constants {
     public static final String kCurrentRobot = "comp2025";
     public static final double kAirResistanceFactor = 0;
     public static final double kRobotLength = 12;
-    public static final boolean reverseFront = true; // whether we switch front modules with rear modules
+
+    public static final double kTurnP = 12;
+    public static final double kTurnI = 0;
+    public static final double kTurnD = 0;
   }
 
   public static class ChoreoConstants {
@@ -75,11 +79,11 @@ public final class Constants {
   }
 
   public static class ShooterConstants {
-    public static final double kShooterHeight = 0.44; // TODO: Measure
+    public static final double kShooterHeight = 0.43; // TODO: Measure
     public static final double kShooterAngle = Math.toRadians(61.9);
     public static final int kDriveMotorId = 18;
     public static double kShooterDistanceFromCenter = 0.24;
-    public static double kMinRobotDistanceFromHub = 2.47333;
+    public static double kMinRobotDistanceFromHub = 0.85;
     public static final double kP = 0.00055;
     public static final double kI = 0;
     public static final double kD = 0;
@@ -92,7 +96,8 @@ public final class Constants {
     public static final double kIndexerRollerPower = -1;
 
     public static final double kMaxRPMOffsetBeforeShootFails = 150; //guess. please change
-    public static final double kPassRPM = 2500;
+    public static final double kPassRPM = 5000;
+    public static final double kStaticShootRPM = 5000;
 
     public static final double kMaxScoringRobotSpeed = 1; //guess. in meters per second
 
@@ -104,14 +109,14 @@ public final class Constants {
     public static final int k_RightIntakeId = 1;
     public static final int k_RightSpinId = 2;
     public static final double k_IntakePower = 1; 
-    public static final double k_Kp = 0.25;
+    public static final double k_Kp = 0.1;
     public static final double k_Kd = 0;
     public static final double k_Ks = 0;
     public static final double k_Kg = 0.1;
     public static final double k_Kv = 0;
 
-    public static final double k_TargetAngle = 0.1;
-    public static final double k_UpAngle = 1.3;
+    public static final double k_TargetAngle = 0.3;
+    public static final double k_UpAngle = 1.4;
 
     public static final int k_GearRatio = -20;
     public static final double k_TargetVelocity = 0;

@@ -58,7 +58,6 @@ public class AutoHandlingSubsystem extends SubsystemBase {
                     try {
                         autoFactory.bind(m.getName(), (Command) m.invoke(s, autoFactory));
                     } catch (Exception e) {
-                        e.printStackTrace();
                     }
                 }
             }
@@ -83,7 +82,6 @@ public class AutoHandlingSubsystem extends SubsystemBase {
                         }
                     });
                 } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
         }

@@ -29,6 +29,8 @@ import edu.wpi.first.wpilibj.XboxController;
 
 import frc.robot.Constants;
 
+import java.util.function.Supplier;
+
 import com.ctre.phoenix6.hardware.CANcoder;
 
 
@@ -44,6 +46,9 @@ public class IntakeSubsystem extends SubsystemBase {
   public Trigger runIntakeTrigger = new Trigger(() -> {return false;});
   public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
   public Trigger resetEncoderTrigger = new Trigger(() -> {return false;});
+  public Trigger manualIntakeTrigger = new Trigger(() -> {return false;});
+
+  public Supplier<Double> manualControlAxis = () -> 0d;
 
   private final DoublePublisher m_encoderPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Intake/Encoder").publish();
   private final DoublePublisher m_anglePublisher = NetworkTableInstance.getDefault().getDoubleTopic("Intake/Angle").publish();
@@ -55,9 +60,9 @@ public class IntakeSubsystem extends SubsystemBase {
   public Command runCommand() {
     return runOnce(
         () -> {
-          
-          runIntakeTrigger.and(RobotModeTriggers.teleop()).whileTrue(runIntakeCommand());
-          runIntakeTrigger.and(RobotModeTriggers.teleop()).whileFalse(returnToUpPositionCommand());
+          Trigger autoIntakeTrigger = runIntakeTrigger;
+          autoIntakeTrigger.and(RobotModeTriggers.teleop()).whileTrue(runIntakeCommand());
+          runIntakeTrigger.negate().and(RobotModeTriggers.teleop()).whileTrue(returnToUpPositionCommand());
           resetEncoderTrigger.onTrue(resetEncoderCommand().onlyIf(() -> RobotModeTriggers.test().getAsBoolean()));
         });
   }
@@ -79,6 +84,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
   public Command runIntakeCommand() {
     return Commands.run(() -> {
+      System.out.println("Running intake");
      int inversionFactor = 1;
       if (reverseIntakeTrigger.getAsBoolean()) {
         inversionFactor = -1;
@@ -90,6 +96,7 @@ public class IntakeSubsystem extends SubsystemBase {
   
   public Command returnToUpPositionCommand() {
     return Commands.run(() -> {
+      System.out.println("Returning to Up Position");
       m_motorRightIntake.set(calculateMotorOutput(Constants.IntakeConstants.k_UpAngle));
     });
   }

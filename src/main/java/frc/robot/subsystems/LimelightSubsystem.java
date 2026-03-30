@@ -6,7 +6,9 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Micro;
 
+import java.lang.StackWalker.Option;
 import java.util.ArrayList;
+import java.util.Optional;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
 
@@ -19,9 +21,13 @@ import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.util.struct.Struct;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.Constants;
 import frc.robot.LimelightHelpers;
 
@@ -31,12 +37,16 @@ public class LimelightSubsystem extends SubsystemBase {
   private final StructPublisher<Pose2d> outPosePublisher;
   private final StructPublisher<Pose2d> posePublisher;
   private final Pigeon2 m_gyro;
+  private final CommandSwerveDrivetrain m_drivetrain;
 
-  public LimelightSubsystem() {
+  private Alliance currentAlliance = ((DriverStation.getAlliance() == Optional.of(Alliance.Red))) ? Alliance.Red : Alliance.Blue;
+
+  public LimelightSubsystem(CommandSwerveDrivetrain drivetrain) {
     posePublisher = NetworkTableInstance.getDefault()
         .getStructTopic("Limelight/Pose", Pose2d.struct).publish();
     outPosePublisher = NetworkTableInstance.getDefault().getStructTopic("Limelight/OutPose", Pose2d.struct).publish();
     m_gyro = new Pigeon2(Constants.kPigeonID);
+    m_drivetrain = drivetrain;
   }
 
   public Command sendRobotOrientationCommand(Pigeon2 gyro) {
@@ -45,7 +55,7 @@ public class LimelightSubsystem extends SubsystemBase {
     return run(() -> {
       table.getEntry("robot_orientation_set").setDoubleArray(robotorientation);
       try {
-        posePublisher.set(getRobotPose());
+        getRobotPose().ifPresent(pose -> posePublisher.set(pose));
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -53,15 +63,21 @@ public class LimelightSubsystem extends SubsystemBase {
 
   }
 
-  public Pose2d getRobotPose() {
-
-    double[] value = table.getEntry("botpose_orb_wpiblue").getDoubleArray((double[]) null);
-    if (value == (double[]) null) {
-      return new Pose2d(1, 0, new Rotation2d(0));
+  public Optional<Pose2d> getRobotPose() {
+    var est = (DriverStation.getAlliance() == Optional.of(Alliance.Red)) ?
+      LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2("limelight-rock") : 
+      LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-rock");
+    if (est == null || est.pose == null) {
+      SmartDashboard.putBoolean("Limelight Active", false);
+      return Optional.empty();   
     }
-    var out = new Pose2d(new Translation2d(value[0], value[1]), new Rotation2d(value[5] * Math.PI / 180));
+    if (rejectUpdate()) {
+      return Optional.empty();
+    }
+        SmartDashboard.putBoolean("Limelight Active", true);
+    var out = est.pose;
     outPosePublisher.set(out);
-    return out;
+    return Optional.of(out);
 
   }
 

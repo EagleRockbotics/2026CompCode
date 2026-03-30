@@ -19,7 +19,9 @@ import frc.robot.subsystems.LimelightSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Radian;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Rotation;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import java.io.File;
@@ -46,6 +48,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.units.AngleUnit;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -80,7 +84,7 @@ public class RobotContainer {
       Constants.OperatorConstants.kHelperControllerPort);
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
-  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem();
+  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain);
   private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem);
   private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand();
   // private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
@@ -97,7 +101,7 @@ public class RobotContainer {
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
       .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+  // private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
   private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
   private final Telemetry logger = new Telemetry(MaxSpeed);
@@ -114,11 +118,11 @@ public class RobotContainer {
     m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
     m_autoHandler.publishChooser();
     
-    // CommandScheduler.getInstance().schedule(
-    //   Commands.repeatingSequence(setRobotLimelightOrientationCommand()
-    //   // , addVisionMeasurementCommand()
-    //   )
-    // );
+    CommandScheduler.getInstance().schedule(
+      Commands.repeatingSequence(setRobotLimelightOrientationCommand()
+      // , addVisionMeasurementCommand()
+      ).ignoringDisable(true)
+    );
   }
 
   /**
@@ -142,32 +146,40 @@ public class RobotContainer {
     RobotModeTriggers.disabled().whileTrue(
         m_drivetrain.applyRequest(() -> idle).ignoringDisable(true));
 
-    joystick.a().whileTrue(m_drivetrain.applyRequest(() -> brake));
 
     // Run SysId routines when holding back/start and X/Y.
     // Note that each routine should be run exactly once in a single log.
-    joystick.back().and(joystick.y()).whileTrue(m_drivetrain.sysIdDynamic(Direction.kForward));
-    joystick.back().and(joystick.x()).whileTrue(m_drivetrain.sysIdDynamic(Direction.kReverse));
-    joystick.start().and(joystick.y()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kForward));
-    joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
+    // joystick.back().and(joystick.y()).whileTrue(m_drivetrain.sysIdDynamic(Direction.kForward));
+    // joystick.back().and(joystick.x()).whileTrue(m_drivetrain.sysIdDynamic(Direction.kReverse));
+    // joystick.start().and(joystick.y()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kForward));
+    // joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
 
     helperStick.x().and(RobotModeTriggers.test()).whileTrue(m_shooterSubsystem.driveAtInputRPM());
    
 
 
     // Reset the field-centric heading on left bumper press.
-    // joystick.leftBumper().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
+    joystick.a().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
 
     m_drivetrain.registerTelemetry(logger::telemeterize);
 
     m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
     m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
-    m_shooterSubsystem.xAxis = () -> {return -joystick.getLeftX();};
-    m_shooterSubsystem.yAxis = () -> {return -joystick.getLeftY();};
+    m_shooterSubsystem.xAxis = () -> -joystick.getLeftX();
+    m_shooterSubsystem.yAxis = () -> -joystick.getLeftY();
 
-     joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(m_drivetrain.applyRequest(m_shooterSubsystem::getPointRequest));
-     joystick.y().and(RobotModeTriggers.test()).onTrue(resetGyro());
-     joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {m_drivetrain.resetPose(new Pose2d());}));
+    joystick.x().onTrue(Commands.runOnce(() -> {
+      m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
+    }));
+
+    joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(Commands.sequence(
+      Commands.runOnce(() -> {
+        System.out.println("AAAAAAAAAAAAAAHHHHH!!!");
+        m_drivetrain.resetPose(m_shooterSubsystem.getCurrentPose().get());
+      }), 
+      m_drivetrain.applyRequest(m_shooterSubsystem::getPointRequest)));
+    //  joystick.y().and(RobotModeTriggers.test()).onTrue(resetGyro());
+    //  joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {m_drivetrain.resetPose(new Pose2d());}));
 
     // m_elevatorSubsystem.backLeftButtonAxis = () -> {return helperStick.getLeftTriggerAxis();};
     // m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
@@ -179,9 +191,11 @@ public class RobotContainer {
     // m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
     // m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
 
-    m_intakeSubsytem.runIntakeTrigger = driveStick.y();
-    m_intakeSubsytem.reverseIntakeTrigger = driveStick.x();
+    m_intakeSubsytem.runIntakeTrigger = driveStick.rightBumper();
+    m_intakeSubsytem.reverseIntakeTrigger = driveStick.leftBumper();
     m_intakeSubsytem.resetEncoderTrigger = helperStick.y();
+    m_intakeSubsytem.manualIntakeTrigger = helperStick.rightBumper();
+    m_intakeSubsytem.manualControlAxis = helperStick::getLeftY;
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
     // pressed,
@@ -196,27 +210,28 @@ public class RobotContainer {
 
   public Command getTeleopCommand() {
     return Commands.parallel(
-        m_drivetrain.applyRequest(this::getDriveRequest), m_shooterPair.getFirst(), m_intakeSubsytem.runCommand());
+        m_drivetrain.applyRequest(this::getDriveRequest),
+        m_shooterPair.getFirst(), m_intakeSubsytem.runCommand());
   }
 
   private SwerveRequest getDriveRequest() {
-    if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean()) {
+    if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() || (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() && m_shooterSubsystem.manualAimTeleopTrigger.getAsBoolean())) {
       return m_shooterPair.getSecond().get();
     }
-    return drive.withVelocityX(joystick.getLeftY() * MaxSpeed * TeleopSpeedMultiplier)
-      .withVelocityY(joystick.getLeftX() * MaxSpeed * TeleopSpeedMultiplier) // Drive left with negative X (left)
-      .withRotationalRate(joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
+    return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+      .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
+      .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
   }
 
   
 
   public Command getTestCommand() {
-    return m_intakeSubsytem.publishAngleCommand();
+    return Commands.parallel( m_intakeSubsytem.publishAngleCommand());
   }
 
   public Command getAutoCommand() {
     m_drivetrain.resetThetaController();
-    return m_autoHandler.getAutonomousCommand();
+    return Commands.sequence(Commands.runOnce(() -> m_drivetrain.resetThetaController()), Commands.runOnce(() -> m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero))), m_autoHandler.getAutonomousCommand());
   }
 
   public Command resetGyro() {
@@ -293,9 +308,9 @@ public class RobotContainer {
     AutoRoutine routine = factory.newRoutine("testMainRoutine");
     routine.active().onTrue(Commands.sequence(
       m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
-      m_drivetrain.moveToPose(Constants.AutonomousConstants.kTestAutoAlignPose),
-      m_shooterSubsystem.autoShooterCommand().getFirst(),
-      autoElevatorRoutine(factory).cmd()
+      // m_drivetrain.moveToPose(Constants.AutonomousConstants.kTestAutoAlignPose),
+      m_shooterSubsystem.autoShooterCommand().getFirst()
+      // , autoElevatorRoutine(factory).cmd()
     ));
     return routine;
   }
