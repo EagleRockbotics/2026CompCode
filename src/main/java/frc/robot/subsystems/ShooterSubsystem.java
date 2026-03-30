@@ -147,6 +147,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double calculateRPMFromVelocity(double velocity) { // TODO: do this
+    return 676.6*velocity+2866; // empirical, bound to change
     return 676.7 * velocity + 2866;
   }
 
