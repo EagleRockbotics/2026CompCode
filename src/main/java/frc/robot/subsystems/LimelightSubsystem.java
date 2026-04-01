@@ -39,30 +39,27 @@ public class LimelightSubsystem extends SubsystemBase {
   private final Pigeon2 m_gyro;
   private final CommandSwerveDrivetrain m_drivetrain;
 
-  private Alliance currentAlliance = ((DriverStation.getAlliance() == Optional.of(Alliance.Red))) ? Alliance.Red : Alliance.Blue;
-
-  public LimelightSubsystem(CommandSwerveDrivetrain drivetrain) {
+  public LimelightSubsystem(CommandSwerveDrivetrain drivetrain, Pigeon2 gyro) {
     posePublisher = NetworkTableInstance.getDefault()
         .getStructTopic("Limelight/Pose", Pose2d.struct).publish();
     outPosePublisher = NetworkTableInstance.getDefault().getStructTopic("Limelight/OutPose", Pose2d.struct).publish();
-    m_gyro = new Pigeon2(Constants.kPigeonID);
+    m_gyro = gyro;
     m_drivetrain = drivetrain;
   }
 
-  public Command sendRobotOrientationCommand(Pigeon2 gyro) {
-    double[] robotorientation = { gyro.getYaw().getValueAsDouble(), gyro.getAngularVelocityZWorld().getValueAsDouble(),
-        0, 0, 0, 0 };
+  public Command sendRobotOrientationCommand() {
     return run(() -> {
-      table.getEntry("robot_orientation_set").setDoubleArray(robotorientation);
+      setRobotOrientation();
       try {
-        getRobotPose().ifPresent(pose -> posePublisher.set(pose));
+        getRobotPose().ifPresent(pose -> {posePublisher.set(pose); m_drivetrain.resetPose(pose);});
       } catch (Exception e) {
         e.printStackTrace();
       }
-    });
+    }).ignoringDisable(true);
 
   }
 
+  Pose2d lastPose = Pose2d.kZero;
   public Optional<Pose2d> getRobotPose() {
     var est = (DriverStation.getAlliance() == Optional.of(Alliance.Red)) ?
       LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2("limelight-rock") : 
@@ -74,11 +71,17 @@ public class LimelightSubsystem extends SubsystemBase {
     if (rejectUpdate()) {
       return Optional.empty();
     }
+    if (est.pose == Pose2d.kZero) {
+      return Optional.empty();
+    }
+    if (est.pose.minus(lastPose).getTranslation().getNorm() < Constants.SwerveConstants.kLLUpdateTranslationDeadband && est.pose.minus(lastPose).getRotation().getRadians() < Constants.SwerveConstants.kLLUpdateRotationDeadband) {
+      return Optional.empty();
+    }
         SmartDashboard.putBoolean("Limelight Active", true);
     var out = est.pose;
     outPosePublisher.set(out);
+    lastPose = out;
     return Optional.of(out);
-
   }
 
   public double getLatency() {
@@ -91,7 +94,7 @@ public class LimelightSubsystem extends SubsystemBase {
   }
 
   public Command poseCommand() {
-    return sendRobotOrientationCommand(m_gyro);
+    return sendRobotOrientationCommand();
   }
 
   public LimelightHelpers.PoseEstimate getPoseEstimate() {

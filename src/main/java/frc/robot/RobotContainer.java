@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
@@ -48,6 +49,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.units.AngleUnit;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.networktables.DoublePublisher;
@@ -76,7 +78,6 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
  */
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
-  private final Pigeon2 m_gyro = new Pigeon2(Constants.kPigeonID);
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   private final CommandXboxController driveStick = new CommandXboxController(
       Constants.OperatorConstants.kDriverControllerPort);
@@ -84,9 +85,9 @@ public class RobotContainer {
       Constants.OperatorConstants.kHelperControllerPort);
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
-  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain);
+  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain, m_drivetrain.getPigeon2());
   private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem);
-  private final Pair<Command, Supplier<SwerveRequest>> m_shooterPair = m_shooterSubsystem.shooterCommand();
+  private final Pair<Command, Supplier<Optional<SwerveRequest>>> m_shooterPair = m_shooterSubsystem.shooterCommand();
   // private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
   private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
@@ -108,6 +109,8 @@ public class RobotContainer {
 
   private final CommandXboxController joystick = driveStick;
 
+  private final StructPublisher<Pose2d> rotatedLimelightPosePublisher = NetworkTableInstance.getDefault().getStructTopic("rotatedLimelightPose", Pose2d.struct).publish();
+
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
@@ -117,12 +120,13 @@ public class RobotContainer {
     // TODO: Whenever you make a new subsytem, put it in this function.
     m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
     m_autoHandler.publishChooser();
-    
-    CommandScheduler.getInstance().schedule(
-      Commands.repeatingSequence(setRobotLimelightOrientationCommand()
-      // , addVisionMeasurementCommand()
-      ).ignoringDisable(true)
-    );
+
+    resetGyro();
+    m_drivetrain.resetPose(Pose2d.kZero);
+    }
+
+  public Command updateLimelightCommand() {
+    return m_limelightSubsystem.sendRobotOrientationCommand();
   }
 
   /**
@@ -155,8 +159,6 @@ public class RobotContainer {
     // joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
 
     helperStick.x().and(RobotModeTriggers.test()).whileTrue(m_shooterSubsystem.driveAtInputRPM());
-   
-
 
     // Reset the field-centric heading on left bumper press.
     joystick.a().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
@@ -165,19 +167,23 @@ public class RobotContainer {
 
     m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
     m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
-    m_shooterSubsystem.xAxis = () -> -joystick.getLeftX();
-    m_shooterSubsystem.yAxis = () -> -joystick.getLeftY();
+    m_shooterSubsystem.xAxis = () -> -joystick.getLeftY();
+    m_shooterSubsystem.yAxis = () -> -joystick.getLeftX();
 
-    joystick.x().onTrue(Commands.runOnce(() -> {
-      m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
+    joystick.x().and(RobotModeTriggers.teleop()).onTrue(Commands.runOnce(() -> {
+      // m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
+      m_limelightSubsystem.getRobotPose().ifPresent(pose -> {m_drivetrain.resetPose(pose);});
     }));
 
     joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(Commands.sequence(
       Commands.runOnce(() -> {
-        System.out.println("AAAAAAAAAAAAAAHHHHH!!!");
+        // System.out.println("AAAAAAAAAAAAAAHHHHH!!!");
         m_drivetrain.resetPose(m_shooterSubsystem.getCurrentPose().get());
       }), 
-      m_drivetrain.applyRequest(m_shooterSubsystem::getPointRequest)));
+      m_drivetrain.applyOptionalRequest(m_shooterSubsystem::getPointRequest)));
+    joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {
+      m_limelightSubsystem.getRobotPose().ifPresent(pose -> {m_drivetrain.resetPose(pose);});
+    }));
     //  joystick.y().and(RobotModeTriggers.test()).onTrue(resetGyro());
     //  joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {m_drivetrain.resetPose(new Pose2d());}));
 
@@ -211,12 +217,17 @@ public class RobotContainer {
   public Command getTeleopCommand() {
     return Commands.parallel(
         m_drivetrain.applyRequest(this::getDriveRequest),
-        m_shooterPair.getFirst(), m_intakeSubsytem.runCommand());
+        m_shooterPair.getFirst(), m_intakeSubsytem.runCommand(),
+        Commands.run(() -> {
+          rotatedLimelightPosePublisher.set(new Pose2d(m_drivetrain.getState().Pose.getTranslation(), m_shooterSubsystem.calculateTargetAngle().map(Rotation2d::fromRadians).orElse(Rotation2d.kZero)));
+        })
+    );
   }
 
   private SwerveRequest getDriveRequest() {
     if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() || (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() && m_shooterSubsystem.manualAimTeleopTrigger.getAsBoolean())) {
-      return m_shooterPair.getSecond().get();
+      return m_shooterPair.getSecond().get().orElse(drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+      .withVelocityY(-joystick.getLeftX() * MaxSpeed).withRotationalRate(0));
     }
     return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
       .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
@@ -226,7 +237,7 @@ public class RobotContainer {
   
 
   public Command getTestCommand() {
-    return Commands.parallel( m_intakeSubsytem.publishAngleCommand());
+    return Commands.parallel( m_intakeSubsytem.publishAngleCommand(), m_drivetrain.testTurnPID(joystick::getRightX));
   }
 
   public Command getAutoCommand() {
@@ -236,7 +247,7 @@ public class RobotContainer {
 
   public Command resetGyro() {
     return Commands.runOnce(
-      () -> {m_gyro.setYaw(0.0, 10);}
+      () -> {m_drivetrain.getPigeon2().setYaw(0.0, 10);}
     );
   }
 

@@ -41,7 +41,7 @@ public class IntakeSubsystem extends SubsystemBase {
   private final PIDController m_pid  =  new PIDController(Constants.IntakeConstants.k_Kp, 0, Constants.IntakeConstants.k_Kd);
 
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
-  private final RelativeEncoder m_RightEncoder = m_motorRightIntake.getEncoder();
+  private final CANcoder m_RightEncoder = new CANcoder(Constants.IntakeConstants.k_EncoderID);
   private final ArmFeedforward m_armFeed = new ArmFeedforward(Constants.IntakeConstants.k_Ks, Constants.IntakeConstants.k_Kg, Constants.IntakeConstants.k_Kv);
   public Trigger runIntakeTrigger = new Trigger(() -> {return false;});
   public Trigger reverseIntakeTrigger = new Trigger(() -> {return false;});
@@ -55,7 +55,6 @@ public class IntakeSubsystem extends SubsystemBase {
 
 
   public IntakeSubsystem() {
-    m_RightEncoder.setPosition(0);
   }
   public Command runCommand() {
     return runOnce(
@@ -73,10 +72,10 @@ public class IntakeSubsystem extends SubsystemBase {
   // I can understand what "20" means in this function but putting it in a constant would make the code easier to read
   // The output of the encoder further needs to be converted into radians
   public double calculateMotorOutput(double desiredAngle) {
-    double output = (m_pid.calculate((-m_RightEncoder.getPosition()*Math.PI/180), desiredAngle)
-     + m_armFeed.calculate((-m_RightEncoder.getPosition()*Math.PI/180), /* m_RightEncoder.getVelocity().getValueAsDouble() / 20 */ Constants.IntakeConstants.k_TargetVelocity));
-     m_anglePublisher.set((-m_RightEncoder.getPosition()*Math.PI/180));
-     m_encoderPublisher.set(m_RightEncoder.getPosition());
+    double output = (m_pid.calculate((m_RightEncoder.getPosition().getValueAsDouble()*Constants.IntakeConstants.k_EncoderConversionFactor), desiredAngle)
+     + m_armFeed.calculate((m_RightEncoder.getPosition().getValueAsDouble()*Constants.IntakeConstants.k_EncoderConversionFactor), /* m_RightEncoder.getVelocity().getValueAsDouble() / 20 */ Constants.IntakeConstants.k_TargetVelocity));
+     m_anglePublisher.set((m_RightEncoder.getPosition().getValueAsDouble()*Constants.IntakeConstants.k_EncoderConversionFactor));
+     m_encoderPublisher.set(m_RightEncoder.getPosition().getValueAsDouble());
     return -output; // TODO: REMOVE INVERISON IF BROKEN!!!
   
 
@@ -84,19 +83,17 @@ public class IntakeSubsystem extends SubsystemBase {
 
   public Command runIntakeCommand() {
     return Commands.run(() -> {
-      System.out.println("Running intake");
      int inversionFactor = 1;
       if (reverseIntakeTrigger.getAsBoolean()) {
         inversionFactor = -1;
       }
       m_motorRightIntake.set(calculateMotorOutput(Constants.IntakeConstants.k_TargetAngle));
       m_motorRightSpin.set(inversionFactor*Constants.IntakeConstants.k_IntakePower);
-    });
+    }).finallyDo(() -> m_motorRightSpin.set(0));
   } 
   
   public Command returnToUpPositionCommand() {
     return Commands.run(() -> {
-      System.out.println("Returning to Up Position");
       m_motorRightIntake.set(calculateMotorOutput(Constants.IntakeConstants.k_UpAngle));
     });
   }
@@ -109,8 +106,8 @@ public class IntakeSubsystem extends SubsystemBase {
 
   public Command publishAngleCommand() {
     return Commands.run(() -> {
-        m_anglePublisher.set((-m_RightEncoder.getPosition()*Math.PI/180));
-        m_encoderPublisher.set(m_RightEncoder.getPosition());
+        m_anglePublisher.set((m_RightEncoder.getPosition().getValueAsDouble()*Constants.IntakeConstants.k_EncoderConversionFactor));
+        m_encoderPublisher.set(m_RightEncoder.getPosition().getValueAsDouble());
         
     });
   }

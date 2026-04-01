@@ -37,6 +37,7 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
     // m_robotContainer.publishAutoChooser();
+    CommandScheduler.getInstance().schedule(m_robotContainer.updateLimelightCommand());
   }
 
   /**
@@ -104,6 +105,7 @@ public class Robot extends TimedRobot {
     m_teleopCommand = m_robotContainer.getTeleopCommand();
 
     if (m_teleopCommand != null) {
+      m_teleopCommand.cancel();
       m_teleopCommand.schedule();
     }
   }

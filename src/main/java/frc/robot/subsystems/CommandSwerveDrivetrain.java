@@ -36,6 +36,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -242,6 +243,21 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      */
     public Command applyRequest(Supplier<SwerveRequest> request) {
         return run(() -> {this.setControl(request.get()); m_observedPublisher.set(this.getState().ModuleStates);});
+    }
+
+    public Command applyOptionalRequest(Supplier<Optional<SwerveRequest>> request) {
+        return run (() -> {request.get().ifPresent(req -> this.setControl(req));});
+    }
+
+    public Command testTurnPID(Supplier<Double> turnAxis) {
+        return this.applyRequest(() -> {
+        SmartDashboard.putNumber("Target Angle", turnAxis.get()*Math.PI*2);
+        return new SwerveRequest.FieldCentricFacingAngle()
+      .withTargetDirection(Rotation2d.fromRadians(turnAxis.get()*Math.PI*2))
+      .withHeadingPID(Constants.SwerveConstants.kTurnP, Constants.SwerveConstants.kTurnI, Constants.SwerveConstants.kTurnD)
+      .withVelocityX(0)
+      .withVelocityY(0);
+        });
     }
 
     public void followTrajectory(SwerveSample sample) {
