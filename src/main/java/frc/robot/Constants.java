@@ -136,13 +136,13 @@ public final class Constants {
     public static final double kMinDistanceError = 0.01;
     public static final double kSideServoOutPosition = 0.5;
     public static final double kDownPosition = 0;
-    public static final double kUpPosition = 1.0;
-    public static final double kMaxVelocity = 10.0;
+    public static final double kUpPosition = 774.0;
+    public static final double kMaxVelocity = 10;
     public static final double kMaxAcceleration = 20.0;
     public static final double kS = 0.0;
     public static final double kG = 0.0;
     public static final double kV = 0.0;
-    public static final double kP = 0.0;
+    public static final double kP = 0.2;
     public static final double kI = 0.0;
     public static final double kD = 0.0;
   }

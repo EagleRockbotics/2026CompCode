@@ -61,9 +61,8 @@ public class IntakeSubsystem extends SubsystemBase {
         () -> {
           Trigger autoIntakeTrigger = runIntakeTrigger;
           autoIntakeTrigger.and(RobotModeTriggers.teleop()).whileTrue(runIntakeCommand());
-          runIntakeTrigger.negate().and(RobotModeTriggers.teleop()).whileTrue(returnToUpPositionCommand());
           resetEncoderTrigger.onTrue(resetEncoderCommand().onlyIf(() -> RobotModeTriggers.test().getAsBoolean()));
-        });
+        }).alongWith(returnToUpPositionCommand().onlyWhile(runIntakeTrigger.negate()::getAsBoolean));
   }
 
   //Creates the output needed for the motor spin to a certain radian

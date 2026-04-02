@@ -39,6 +39,11 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.controls.ControlRequest;
+import com.ctre.phoenix6.controls.SolidColor;
+import com.ctre.phoenix6.controls.StrobeAnimation;
+import com.ctre.phoenix6.controls.TwinkleAnimation;
+import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
@@ -48,6 +53,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private final SparkFlexConfig m_motorConfig = new SparkFlexConfig();
   private final CommandSwerveDrivetrain m_drivetrain;
   private final LimelightSubsystem m_limelightSubsystem;
+  private final CANdleSubsystem m_CANdle;
 
   // SHOOTER MODE CONFIGURATION
   private final boolean forceLimelight = true;
@@ -73,7 +79,7 @@ public class ShooterSubsystem extends SubsystemBase {
     Constants.FieldConstants.kBlueHubPosition : Constants.FieldConstants.kRedHubPosition;
 
   @SuppressWarnings("removal")
-  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, LimelightSubsystem limelight) {
+  public ShooterSubsystem(CommandSwerveDrivetrain drivetrain, LimelightSubsystem limelight, CANdleSubsystem CANdle) {
     m_motorConfig.closedLoop.p(Constants.ShooterConstants.kP)
       .i(Constants.ShooterConstants.kI)
       .d(Constants.ShooterConstants.kD)
@@ -84,6 +90,7 @@ public class ShooterSubsystem extends SubsystemBase {
     m_driveMotor.configure(m_motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     m_drivetrain = drivetrain;
     m_limelightSubsystem = limelight;
+    m_CANdle = CANdle;
     
     SmartDashboard.putNumber("Shooter/Test Shooter RPM", 0);
   }
@@ -155,7 +162,7 @@ public class ShooterSubsystem extends SubsystemBase {
   }
 
   public double calculateRPMFromVelocity(double velocity) { // TODO: do this
-    double slope = 600;
+    double slope = 610;
     double intercept = 400;
     return (slope*velocity)-intercept;
   }
@@ -196,7 +203,12 @@ public class ShooterSubsystem extends SubsystemBase {
   public Pair<Command, Supplier<Optional<SwerveRequest>>> shooterCommand() {
     return new Pair<Command,Supplier<Optional<SwerveRequest>>>(Commands.runOnce(() -> {
       autoAimTeleopTrigger.and(() -> !getRobotTooCloseToHub()).and(manualAimTeleopTrigger.negate()).whileTrue(Commands.parallel(
-        driveShooterCommand(() -> getCurrentHubPosition().map(hubPosition -> getOutputRPM(hubPosition))), Commands.run(() -> getHubDistance().ifPresent(distance -> targetVelocityPublisher.set(calculateTargetVelocity(distance))))));
+        driveShooterCommand(() -> getCurrentHubPosition().map(hubPosition -> getOutputRPM(hubPosition))), 
+        Commands.run(() -> getHubDistance().ifPresent(distance -> targetVelocityPublisher.set(calculateTargetVelocity(distance)))),
+        Commands.runOnce(() -> m_CANdle.setState(new StrobeAnimation(0, 7)
+                                          .withColor(RGBWColor.fromHSV(52, 46.3, 100))
+                                          .withFrameRate(100)))
+        ));
       manualAimTeleopTrigger.and(autoAimTeleopTrigger.negate()).whileTrue(driveShooterCommand(() -> Optional.of(Constants.ShooterConstants.kPassRPM)));
       manualAimTeleopTrigger.and(autoAimTeleopTrigger).whileTrue(driveShooterCommand(() -> Optional.of(Constants.ShooterConstants.kStaticShootRPM)));
       autoAimTeleopTrigger.or(manualAimTeleopTrigger).negate().whileTrue(shooterIdle());
@@ -258,6 +270,7 @@ public class ShooterSubsystem extends SubsystemBase {
     return Commands.sequence( 
     Commands.run(() -> {
       m_driveMotor.stopMotor(); 
+      m_CANdle.setState(new SolidColor(0, 7).withColor(RGBWColor.fromHSV(37, 79.2, 100)));
       rpmPublisher.set(m_driveMotor.getEncoder().getVelocity());}));
   }
 

@@ -11,6 +11,7 @@ import frc.robot.commands.Autos;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.AutoHandlingSubsystem;
+import frc.robot.subsystems.CANdleSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ExampleSubsystem;
@@ -86,9 +87,10 @@ public class RobotContainer {
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
   private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
   private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain, m_drivetrain.getPigeon2());
-  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem);
+  private final CANdleSubsystem m_CANdleSubsystem = new CANdleSubsystem();
+  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem, m_CANdleSubsystem);
   private final Pair<Command, Supplier<Optional<SwerveRequest>>> m_shooterPair = m_shooterSubsystem.shooterCommand();
-  // private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
+  private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
   private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
   // Code copied from CTRE Swerve template
@@ -108,8 +110,6 @@ public class RobotContainer {
   private final Telemetry logger = new Telemetry(MaxSpeed);
 
   private final CommandXboxController joystick = driveStick;
-
-  private final StructPublisher<Pose2d> rotatedLimelightPosePublisher = NetworkTableInstance.getDefault().getStructTopic("rotatedLimelightPose", Pose2d.struct).publish();
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -171,19 +171,18 @@ public class RobotContainer {
     m_shooterSubsystem.yAxis = () -> -joystick.getLeftX();
 
     joystick.x().and(RobotModeTriggers.teleop()).onTrue(Commands.runOnce(() -> {
-      // m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
-      m_limelightSubsystem.getRobotPose().ifPresent(pose -> {m_drivetrain.resetPose(pose);});
+      m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
+      m_drivetrain.resetGyro();
     }));
 
     joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(Commands.sequence(
       Commands.runOnce(() -> {
-        // System.out.println("AAAAAAAAAAAAAAHHHHH!!!");
         m_drivetrain.resetPose(m_shooterSubsystem.getCurrentPose().get());
       }), 
       m_drivetrain.applyOptionalRequest(m_shooterSubsystem::getPointRequest)));
-    joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {
-      m_limelightSubsystem.getRobotPose().ifPresent(pose -> {m_drivetrain.resetPose(pose);});
-    }));
+    // joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {
+    //   m_limelightSubsystem.getRobotPose().ifPresent(pose -> {m_drivetrain.resetPose(pose);});
+    // }));
     //  joystick.y().and(RobotModeTriggers.test()).onTrue(resetGyro());
     //  joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {m_drivetrain.resetPose(new Pose2d());}));
 
@@ -191,11 +190,11 @@ public class RobotContainer {
     // m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
     // m_elevatorSubsystem.backLeftButtonTrigger = helperStick.leftTrigger();
     // m_elevatorSubsystem.backRightButtonTrigger = helperStick.rightTrigger();
-    // m_elevatorSubsystem.enableElevatorTrigger = driveStick.b();
-    // m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
-    // m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
-    // m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
-    // m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
+    m_elevatorSubsystem.enableElevatorTrigger = driveStick.b();
+    m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
+    m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
+    m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
+    m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
 
     m_intakeSubsytem.runIntakeTrigger = driveStick.rightBumper();
     m_intakeSubsytem.reverseIntakeTrigger = driveStick.leftBumper();
@@ -217,10 +216,9 @@ public class RobotContainer {
   public Command getTeleopCommand() {
     return Commands.parallel(
         m_drivetrain.applyRequest(this::getDriveRequest),
-        m_shooterPair.getFirst(), m_intakeSubsytem.runCommand(),
-        Commands.run(() -> {
-          rotatedLimelightPosePublisher.set(new Pose2d(m_drivetrain.getState().Pose.getTranslation(), m_shooterSubsystem.calculateTargetAngle().map(Rotation2d::fromRadians).orElse(Rotation2d.kZero)));
-        })
+        m_shooterPair.getFirst(), 
+        m_intakeSubsytem.runCommand(),
+        m_elevatorSubsystem.elevatorCommand()
     );
   }
 
@@ -237,7 +235,7 @@ public class RobotContainer {
   
 
   public Command getTestCommand() {
-    return Commands.parallel( m_intakeSubsytem.publishAngleCommand(), m_drivetrain.testTurnPID(joystick::getRightX));
+    return Commands.parallel( m_intakeSubsytem.publishAngleCommand(), m_elevatorSubsystem.elevatorCommand());
   }
 
   public Command getAutoCommand() {

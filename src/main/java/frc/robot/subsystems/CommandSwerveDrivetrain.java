@@ -349,6 +349,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     this.thetaController.reset(0, 0);
    }
 
+   public void resetGyro() {
+    this.getPigeon2().reset();
+   }
+
 
     /**
      * Runs the SysId Quasistatic test in the given direction for the routine

@@ -10,8 +10,10 @@ import com.ctre.phoenix6.hardware.CANrange;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
+import com.revrobotics.servohub.ServoHub.Warnings;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel;
+import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
@@ -29,6 +31,7 @@ import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants;
 
@@ -37,12 +40,12 @@ public class ElevatorSubsystem extends SubsystemBase {
 
   private final CANrange distanceSensor = new CANrange(0);
 
-  private final SparkFlex m_motor = new SparkFlex(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
+  private final SparkMax m_motor = new SparkMax(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
   private final SparkBaseConfig m_motorConfig = new SparkFlexConfig().idleMode(IdleMode.kBrake);
 
-  private final Servo m_leftServo = new Servo(Constants.ElevatorConstants.kLeftServoChannel);
-  private final Servo m_rightServo = new Servo(Constants.ElevatorConstants.kRightServoChannel);
-  private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
+  // private final Servo m_leftServo = new Servo(Constants.ElevatorConstants.kLeftServoChannel);
+  // private final Servo m_rightServo = new Servo(Constants.ElevatorConstants.kRightServoChannel);
+  // private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
 
   private final RelativeEncoder m_encoder = m_motor.getEncoder();
 
@@ -50,8 +53,7 @@ public class ElevatorSubsystem extends SubsystemBase {
   private final ProfiledPIDController m_profiledController = new ProfiledPIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD, m_constraints);
   private final ElevatorFeedforward m_feedforward = new ElevatorFeedforward(Constants.ElevatorConstants.kS, Constants.ElevatorConstants.kG, Constants.ElevatorConstants.kV);
 
-  private boolean elevatorEnabled = true;
-  private boolean sideServosReleased = false;
+  private boolean sideServosReleased;
 
   public Trigger raiseElevatorTrigger = new Trigger(() -> {return false;});
   public Trigger lowerElevatorTrigger = new Trigger(() -> {return false;});
@@ -73,23 +75,26 @@ public class ElevatorSubsystem extends SubsystemBase {
   public ElevatorSubsystem() {
     m_encoder.setPosition(0);
     m_motor.configure(m_motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+    sideServosReleased = false;
   }
 
   public Command raiseElevatorCommand() {
     return Commands.run(() -> {
-      m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
+      // m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
+      m_motor.set(0.5);
     });
   }
   public Command lowerElevatorCommand() {
     return Commands.run(() -> {
-      m_profiledController.setGoal(Constants.ElevatorConstants.kDownPosition);
+      // m_profiledController.setGoal(Constants.ElevatorConstants.kDownPosition);
+      m_motor.set(-0.5);
     });
   }
   public Command releaseSideServosCommand() {
     return Commands.runOnce(() -> {
       if (!sideServosReleased) {
-        m_leftServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
-        m_rightServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
+        // m_leftServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
+        // m_rightServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
         sideServosReleased = true;
       } else {
         System.out.println("Elevator Subsystem: Side servos already released.");
@@ -98,7 +103,7 @@ public class ElevatorSubsystem extends SubsystemBase {
   }
   public Command runTopServoCommand() {
     return Commands.run(() -> {
-      m_topServo.set(1); // because shog removed the encoder setting it to a nonzero value just makes it run
+      // m_topServo.set(1);
     });
   }
   public Command setElevatorVoltageCommand() {
@@ -112,37 +117,33 @@ public class ElevatorSubsystem extends SubsystemBase {
       feedforwardOutputPublisher.set(feedforwardOutput);
     });
   }
-  public Command enableElevatorCommand() {
-    return Commands.runOnce(() -> {
-      elevatorEnabled = true;
-    });
-  }
-  public Command disableElevatorCommand() {
-    return Commands.runOnce(() -> {
-      elevatorEnabled = false;
-    });
-  }
 
   public Command elevatorCommand() {
+    // return Commands.runOnce(() -> { // fix me
+    //   enableElevatorTrigger.whileTrue(Commands.run(() -> { // this is dogshit
+    //     raiseElevatorTrigger.whileTrue(raiseElevatorCommand());
+    //     lowerElevatorTrigger.whileTrue(lowerElevatorCommand());
+    //     backLeftButtonTrigger.whileTrue(Commands.run(() -> {
+    //       m_profiledController.setConstraints(new TrapezoidProfile.Constraints(
+    //         Math.min(Constants.ElevatorConstants.kMaxVelocity*backLeftButtonAxis.get(),Constants.ElevatorConstants.kMaxVelocity), Constants.ElevatorConstants.kMaxAcceleration
+    //       ));
+    //       lowerElevatorCommand();
+    //     }).onlyIf(backRightButtonTrigger.negate()));
+    //     backRightButtonTrigger.whileTrue(Commands.run(() -> {
+    //       m_profiledController.setConstraints(new TrapezoidProfile.Constraints(
+    //         Math.min(Constants.ElevatorConstants.kMaxVelocity*backRightButtonAxis.get(),Constants.ElevatorConstants.kMaxVelocity), Constants.ElevatorConstants.kMaxAcceleration
+    //       ));
+    //       raiseElevatorCommand();
+    //     }).onlyIf(backLeftButtonTrigger.negate()));
+    //     releaseSideServosTrigger.onTrue(releaseSideServosCommand());
+    //     runTopServoTrigger.onTrue(runTopServoCommand());
+    //   }));
+    // });
     return Commands.runOnce(() -> {
-      enableElevatorTrigger.whileTrue(Commands.run(() -> { // this is dogshit
-        raiseElevatorTrigger.whileTrue(raiseElevatorCommand().onlyWhile(backLeftButtonTrigger.or(backRightButtonTrigger).negate()));
-        lowerElevatorTrigger.whileTrue(lowerElevatorCommand().onlyWhile(backLeftButtonTrigger.or(backRightButtonTrigger).negate()));
-        backLeftButtonTrigger.whileTrue(Commands.run(() -> {
-          m_profiledController.setConstraints(new TrapezoidProfile.Constraints(
-            Math.min(Constants.ElevatorConstants.kMaxVelocity*backLeftButtonAxis.get(),Constants.ElevatorConstants.kMaxVelocity), Constants.ElevatorConstants.kMaxAcceleration
-          ));
-          lowerElevatorCommand();
-        }).onlyIf(backRightButtonTrigger.negate()));
-        backRightButtonTrigger.whileTrue(Commands.run(() -> {
-          m_profiledController.setConstraints(new TrapezoidProfile.Constraints(
-            Math.min(Constants.ElevatorConstants.kMaxVelocity*backRightButtonAxis.get(),Constants.ElevatorConstants.kMaxVelocity), Constants.ElevatorConstants.kMaxAcceleration
-          ));
-          raiseElevatorCommand();
-        }).onlyIf(backLeftButtonTrigger.negate()));
-        releaseSideServosTrigger.onTrue(releaseSideServosCommand());
-        runTopServoTrigger.onTrue(runTopServoCommand());
-      }));
+      raiseElevatorTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).whileTrue(Commands.sequence(raiseElevatorCommand(), setElevatorVoltageCommand()));
+      lowerElevatorTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).whileTrue(Commands.sequence(lowerElevatorCommand(), setElevatorVoltageCommand()));
+      runTopServoTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).whileTrue(runTopServoCommand());
+      releaseSideServosTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).onTrue(releaseSideServosCommand());      
     });
   }
 
