@@ -50,23 +50,26 @@ public class LimelightSubsystem extends SubsystemBase {
   public Command sendRobotOrientationCommand() {
     return run(() -> {
       setRobotOrientation();
-      try {
-        getRobotPose().ifPresent(pose -> {posePublisher.set(pose); m_drivetrain.resetPose(pose);});
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
     }).ignoringDisable(true);
 
   }
 
+  public Command resetPoseCommand() {
+    return run(() -> {try {
+        getRobotPose().ifPresent(pose -> {posePublisher.set(pose); m_drivetrain.resetPose(pose);});
+      } catch (Exception e) {
+        e.printStackTrace();
+      }});
+  }
+
   Pose2d lastPose = Pose2d.kZero;
   public Optional<Pose2d> getRobotPose() {
-    var est = (DriverStation.getAlliance() == Optional.of(Alliance.Red)) ?
+    var est = (DriverStation.getAlliance().equals(Optional.of(Alliance.Red))) ?
       LimelightHelpers.getBotPoseEstimate_wpiRed_MegaTag2("limelight-rock") : 
       LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-rock");
     if (est == null || est.pose == null) {
       SmartDashboard.putBoolean("Limelight Active", false);
-      return Optional.empty();   
+      return Optional.empty(); 
     }
     if (rejectUpdate()) {
       return Optional.empty();
@@ -75,6 +78,9 @@ public class LimelightSubsystem extends SubsystemBase {
       return Optional.empty();
     }
     if (est.pose.minus(lastPose).getTranslation().getNorm() < Constants.SwerveConstants.kLLUpdateTranslationDeadband && est.pose.minus(lastPose).getRotation().getRadians() < Constants.SwerveConstants.kLLUpdateRotationDeadband) {
+      return Optional.empty();
+    }
+    if (est.pose.getTranslation().getNorm() < Constants.SwerveConstants.kLLUpdateTranslationDeadband) {
       return Optional.empty();
     }
         SmartDashboard.putBoolean("Limelight Active", true);
@@ -122,9 +128,9 @@ public class LimelightSubsystem extends SubsystemBase {
   public Command resetOdometryFromVisionPoseSamples(CommandSwerveDrivetrain drivetrain) {
     ArrayList<Pose2d> sampledPoses = new ArrayList<Pose2d>();
     return Commands.sequence(Commands.run(() -> {
-      sampledPoses.add(getPoseEstimate().pose);
+      getRobotPose().ifPresent(pose -> {sampledPoses.add(pose);});
     }).withTimeout(Constants.AutonomousConstants.kVisionPoseSampleTimeout), Commands.runOnce(() -> {
-      Pose2d averagePose = new Pose2d();
+      Pose2d averagePose = Pose2d.kZero;
       for (Pose2d pose : sampledPoses) {
         averagePose.plus(new Transform2d(pose.getTranslation(), pose.getRotation()));
       }

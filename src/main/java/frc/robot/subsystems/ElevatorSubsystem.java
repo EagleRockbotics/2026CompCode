@@ -18,6 +18,7 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
+import choreo.auto.AutoFactory;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -66,7 +67,7 @@ public class ElevatorSubsystem extends SubsystemBase {
   public Supplier<Double> backLeftButtonAxis = () -> {return 0d;};
   public Supplier<Double> backRightButtonAxis = () -> {return 0d;};
 
-  public boolean useDistanceSensor = true;
+  public boolean useDistanceSensor = false;
 
   private final DoublePublisher encoderPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Elevator/Encoder").publish();
   private final DoublePublisher PIDOutputPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Elevator/PIDOutput").publish();
@@ -79,31 +80,13 @@ public class ElevatorSubsystem extends SubsystemBase {
   }
 
   public Command raiseElevatorCommand() {
-    return Commands.run(() -> {
-      // m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
-      m_motor.set(0.5);
+    return Commands.runOnce(() -> {
+      m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
     });
   }
   public Command lowerElevatorCommand() {
-    return Commands.run(() -> {
-      // m_profiledController.setGoal(Constants.ElevatorConstants.kDownPosition);
-      m_motor.set(-0.5);
-    });
-  }
-  public Command releaseSideServosCommand() {
     return Commands.runOnce(() -> {
-      if (!sideServosReleased) {
-        // m_leftServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
-        // m_rightServo.set(Constants.ElevatorConstants.kSideServoOutPosition);
-        sideServosReleased = true;
-      } else {
-        System.out.println("Elevator Subsystem: Side servos already released.");
-      }
-    });
-  }
-  public Command runTopServoCommand() {
-    return Commands.run(() -> {
-      // m_topServo.set(1);
+      m_profiledController.setGoal(Constants.ElevatorConstants.kDownPosition);
     });
   }
   public Command setElevatorVoltageCommand() {
@@ -140,49 +123,20 @@ public class ElevatorSubsystem extends SubsystemBase {
     //   }));
     // });
     return Commands.runOnce(() -> {
-      raiseElevatorTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).whileTrue(Commands.sequence(raiseElevatorCommand(), setElevatorVoltageCommand()));
-      lowerElevatorTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).whileTrue(Commands.sequence(lowerElevatorCommand(), setElevatorVoltageCommand()));
-      runTopServoTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).whileTrue(runTopServoCommand());
-      releaseSideServosTrigger.and(() -> enableElevatorTrigger.getAsBoolean() || RobotModeTriggers.test().getAsBoolean()).onTrue(releaseSideServosCommand());      
+      raiseElevatorTrigger.whileTrue(Commands.sequence(raiseElevatorCommand(), setElevatorVoltageCommand()));
+      lowerElevatorTrigger.whileTrue(Commands.sequence(lowerElevatorCommand(), setElevatorVoltageCommand()));
     });
   }
 
-  public Command climbStageSequence() {
-    return Commands.sequence(
-      raiseElevatorCommand(), lowerElevatorCommand()
-    );
-  }
-
-  public Command autoTeleopClimbSequence() {
-    return Commands.sequence(
-      runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
-      raiseElevatorCommand(),
-      releaseSideServosCommand(),
-      lowerElevatorCommand(),
-      raiseElevatorCommand(),
-      lowerElevatorCommand(),
-      raiseElevatorCommand(),
-      lowerElevatorCommand()
-    );
-  }
-
-  public Command autonomousClimbSequence() {
-    return Commands.sequence(
-      runTopServoCommand().withTimeout(Constants.AutonomousConstants.kAutoElevatorTopServoTimeout),
-      raiseElevatorCommand(),
-      lowerElevatorCommand()
-    );
-  }
-
-  public Command teleopAlignWithLadder(CommandSwerveDrivetrain drivetrain) {
-    Pose2d currentPose = drivetrain.getState().Pose;
-    Pose2d targetPose = currentPose.getTranslation().getDistance(Constants.FieldConstants.kLeftLadderPose.getTranslation()) <
-      currentPose.getTranslation().getDistance(Constants.FieldConstants.kRightLadderPose.getTranslation()) ?
-      Constants.FieldConstants.kLeftLadderPose.plus(new Transform2d(new Translation2d(Constants.ElevatorConstants.kElevatorPositionFrontOffset, 0), new Rotation2d(Math.PI))) : 
-      Constants.FieldConstants.kRightLadderPose.plus(new Transform2d(new Translation2d(Constants.ElevatorConstants.kElevatorPositionFrontOffset, 0), new Rotation2d(Math.PI)));
+  // public Command teleopAlignWithLadder(CommandSwerveDrivetrain drivetrain) {
+  //   Pose2d currentPose = drivetrain.getState().Pose;
+  //   Pose2d targetPose = currentPose.getTranslation().getDistance(Constants.FieldConstants.kLeftLadderPose.getTranslation()) <
+  //     currentPose.getTranslation().getDistance(Constants.FieldConstants.kRightLadderPose.getTranslation()) ?
+  //     Constants.FieldConstants.kLeftLadderPose.plus(new Transform2d(new Translation2d(Constants.ElevatorConstants.kElevatorPositionFrontOffset, 0), new Rotation2d(Math.PI))) : 
+  //     Constants.FieldConstants.kRightLadderPose.plus(new Transform2d(new Translation2d(Constants.ElevatorConstants.kElevatorPositionFrontOffset, 0), new Rotation2d(Math.PI)));
     
-    return drivetrain.moveToPose(targetPose);
-  }
+  //   return drivetrain.moveToPose(targetPose);
+  // }
 
   public Command moveToLadder(CommandSwerveDrivetrain drivetrain) {
     Pose2d currentPose = drivetrain.getState().Pose;

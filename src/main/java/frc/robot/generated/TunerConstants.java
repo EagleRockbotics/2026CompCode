@@ -55,13 +55,15 @@ public class TunerConstants {
 
     // Initial configs for the drive and steer motors and the azimuth encoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
-    private static final TalonFXSConfiguration driveInitialConfigs = new TalonFXSConfiguration();
+    private static final TalonFXSConfiguration driveInitialConfigs = new TalonFXSConfiguration()
+    .withCurrentLimits(new CurrentLimitsConfigs().withSupplyCurrentLimit(Amps.of(40)).withStatorCurrentLimit(Amps.of(40)));
     private static final TalonFXSConfiguration steerInitialConfigs = new TalonFXSConfiguration()
         .withCurrentLimits(
             new CurrentLimitsConfigs()
                 // Swerve azimuth does not require much torque output, so we can set a relatively low
                 // stator current limit to help avoid brownouts without impacting performance.
-                .withStatorCurrentLimit(Amps.of(60))
+                .withStatorCurrentLimit(Amps.of(40))
+                .withStatorCurrentLimit(Amps.of(40))
                 .withStatorCurrentLimitEnable(true)
         );
     private static final CANcoderConfiguration encoderInitialConfigs = new CANcoderConfiguration();

@@ -45,6 +45,7 @@ import choreo.auto.AutoRoutine;
 import choreo.auto.AutoTrajectory;
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.DoublePublisher;
@@ -82,23 +83,22 @@ public class RobotContainer {
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   private final CommandXboxController driveStick = new CommandXboxController(
       Constants.OperatorConstants.kDriverControllerPort);
-  private final CommandXboxController helperStick = new CommandXboxController(
-      Constants.OperatorConstants.kHelperControllerPort);
+  // private final CommandXboxController helperStick = new CommandXboxController(
+  //     Constants.OperatorConstants.kHelperControllerPort);
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
-  private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
-  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain, m_drivetrain.getPigeon2());
-  private final CANdleSubsystem m_CANdleSubsystem = new CANdleSubsystem();
-  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem, m_CANdleSubsystem);
-  private final Pair<Command, Supplier<Optional<SwerveRequest>>> m_shooterPair = m_shooterSubsystem.shooterCommand();
+  // private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
+  // private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain, m_drivetrain.getPigeon2());
+  // private final CANdleSubsystem m_CANdleSubsystem = new CANdleSubsystem();
+  // private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem, m_CANdleSubsystem);
+  // private final Pair<Command, Supplier<Optional<SwerveRequest>>> m_shooterPair = m_shooterSubsystem.shooterCommand();
   private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
-  private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
+  // private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
   // Code copied from CTRE Swerve template
   private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top
                                                                                       // speed
   private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max
-                                                                                    // angular velocity
-  private double TeleopSpeedMultiplier = 0.1;
+                                                                                    // angular velocity 
 
   /* Setting up bindings for necessary control of the swerve drive platform */
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
@@ -111,6 +111,9 @@ public class RobotContainer {
 
   private final CommandXboxController joystick = driveStick;
 
+  private final SlewRateLimiter driveFilter = new SlewRateLimiter(Constants.SwerveConstants.kDriveSlewRateLimit);
+  private final SlewRateLimiter turnFilter = new SlewRateLimiter(Constants.SwerveConstants.kTurnSlewRateLimit);
+
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
@@ -118,15 +121,16 @@ public class RobotContainer {
     // Configure the trigger bindings
     configureBindings();
     // TODO: Whenever you make a new subsytem, put it in this function.
-    m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
-    m_autoHandler.publishChooser();
+    // m_autoHandler.setupAutoReflection(this, m_drivetrain, m_autoHandler);
+    // m_autoHandler.publishChooser();
 
     resetGyro();
     m_drivetrain.resetPose(Pose2d.kZero);
     }
 
   public Command updateLimelightCommand() {
-    return m_limelightSubsystem.sendRobotOrientationCommand();
+    // return m_limelightSubsystem.sendRobotOrientationCommand();
+    return Commands.none();
   }
 
   /**
@@ -158,28 +162,28 @@ public class RobotContainer {
     // joystick.start().and(joystick.y()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kForward));
     // joystick.start().and(joystick.x()).whileTrue(m_drivetrain.sysIdQuasistatic(Direction.kReverse));
 
-    helperStick.x().and(RobotModeTriggers.test()).whileTrue(m_shooterSubsystem.driveAtInputRPM());
+    // helperStick.x().and(RobotModeTriggers.test()).whileTrue(m_shooterSubsystem.driveAtInputRPM());
 
     // Reset the field-centric heading on left bumper press.
     joystick.a().onTrue(m_drivetrain.runOnce(m_drivetrain::seedFieldCentric));
 
     m_drivetrain.registerTelemetry(logger::telemeterize);
 
-    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
-    m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
-    m_shooterSubsystem.xAxis = () -> -joystick.getLeftY();
-    m_shooterSubsystem.yAxis = () -> -joystick.getLeftX();
+    // m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
+    // m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
+    // m_shooterSubsystem.xAxis = () -> -joystick.getLeftY();
+    // m_shooterSubsystem.yAxis = () -> -joystick.getLeftX();
 
     joystick.x().and(RobotModeTriggers.teleop()).onTrue(Commands.runOnce(() -> {
       m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
       m_drivetrain.resetGyro();
     }));
 
-    joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(Commands.sequence(
-      Commands.runOnce(() -> {
-        m_drivetrain.resetPose(m_shooterSubsystem.getCurrentPose().get());
-      }), 
-      m_drivetrain.applyOptionalRequest(m_shooterSubsystem::getPointRequest)));
+    // joystick.rightTrigger().and(RobotModeTriggers.test()).whileTrue(Commands.sequence(
+    //   Commands.runOnce(() -> {
+    //     // m_drivetrain.resetPose(m_shooterSubsystem.getCurrentPose().get());
+    //   }), 
+    //   m_drivetrain.applyOptionalRequest(m_shooterSubsystem::getPointRequest)));
     // joystick.x().and(RobotModeTriggers.test()).onTrue(Commands.runOnce(() -> {
     //   m_limelightSubsystem.getRobotPose().ifPresent(pose -> {m_drivetrain.resetPose(pose);});
     // }));
@@ -190,17 +194,14 @@ public class RobotContainer {
     // m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
     // m_elevatorSubsystem.backLeftButtonTrigger = helperStick.leftTrigger();
     // m_elevatorSubsystem.backRightButtonTrigger = helperStick.rightTrigger();
-    m_elevatorSubsystem.enableElevatorTrigger = driveStick.b();
-    m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
-    m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
-    m_elevatorSubsystem.releaseSideServosTrigger = helperStick.a();
-    m_elevatorSubsystem.runTopServoTrigger = helperStick.b();
+    // m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
+    // m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
 
-    m_intakeSubsytem.runIntakeTrigger = driveStick.rightBumper();
-    m_intakeSubsytem.reverseIntakeTrigger = driveStick.leftBumper();
-    m_intakeSubsytem.resetEncoderTrigger = helperStick.y();
-    m_intakeSubsytem.manualIntakeTrigger = helperStick.rightBumper();
-    m_intakeSubsytem.manualControlAxis = helperStick::getLeftY;
+    // m_intakeSubsytem.runIntakeTrigger = driveStick.rightBumper();
+    // m_intakeSubsytem.reverseIntakeTrigger = driveStick.leftBumper();
+    // m_intakeSubsytem.resetEncoderTrigger = helperStick.y();
+    // m_intakeSubsytem.manualIntakeTrigger = helperStick.rightBumper();
+    // m_intakeSubsytem.manualControlAxis = helperStick::getLeftY;
 
     // Schedule `exampleMethodCommand` when the Xbox controller's B button is
     // pressed,
@@ -215,18 +216,19 @@ public class RobotContainer {
 
   public Command getTeleopCommand() {
     return Commands.parallel(
-        m_drivetrain.applyRequest(this::getDriveRequest),
-        m_shooterPair.getFirst(), 
-        m_intakeSubsytem.runCommand(),
-        m_elevatorSubsystem.elevatorCommand()
+        m_drivetrain.applyRequest(this::getDriveRequest)
+        // ,m_shooterPair.getFirst(), 
+        // m_intakeSubsytem.runCommand(),
+        // m_elevatorSubsystem.elevatorCommand(),
+        // m_limelightSubsystem.resetPoseCommand()
     );
   }
 
   private SwerveRequest getDriveRequest() {
-    if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() || (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() && m_shooterSubsystem.manualAimTeleopTrigger.getAsBoolean())) {
-      return m_shooterPair.getSecond().get().orElse(drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
-      .withVelocityY(-joystick.getLeftX() * MaxSpeed).withRotationalRate(0));
-    }
+    // if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() || (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() && m_shooterSubsystem.manualAimTeleopTrigger.getAsBoolean())) {
+    //   return m_shooterPair.getSecond().get().orElse(drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+    //   .withVelocityY(-joystick.getLeftX() * MaxSpeed).withRotationalRate(0));
+    // }
     return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
       .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
       .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
@@ -234,13 +236,14 @@ public class RobotContainer {
 
   
 
-  public Command getTestCommand() {
-    return Commands.parallel( m_intakeSubsytem.publishAngleCommand(), m_elevatorSubsystem.elevatorCommand());
-  }
+  // public Command getTestCommand() {
+  //   return Commands.parallel( m_intakeSubsytem.publishAngleCommand(), m_elevatorSubsystem.elevatorCommand());
+  // }
 
   public Command getAutoCommand() {
-    m_drivetrain.resetThetaController();
-    return Commands.sequence(Commands.runOnce(() -> m_drivetrain.resetThetaController()), Commands.runOnce(() -> m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero))), m_autoHandler.getAutonomousCommand());
+    // m_drivetrain.resetThetaController();
+    // return Commands.sequence(Commands.runOnce(() -> m_drivetrain.resetThetaController()), Commands.runOnce(() -> m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero))), m_autoHandler.getAutonomousCommand());
+    return Commands.none();
   }
 
   public Command resetGyro() {
@@ -251,25 +254,27 @@ public class RobotContainer {
 
   public Command setRobotLimelightOrientationCommand() {
     return Commands.runOnce(
-      () -> {m_limelightSubsystem.setRobotOrientation();}
+      () -> {
+        // m_limelightSubsystem.setRobotOrientation();
+      }
     );
   }
 
   public Command addVisionMeasurementCommand() {
     return Commands.runOnce(
       () -> {
-        m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(
-          Constants.PoseEstimationConstants.kVisionXStdDev, // scale later
-          Constants.PoseEstimationConstants.kVisionYStdDev, // scale later
-          Constants.PoseEstimationConstants.kVisionHeadingStdDev
-        ));
-        LimelightHelpers.PoseEstimate poseEstimate = m_limelightSubsystem.getPoseEstimate();
-        if (!m_limelightSubsystem.rejectUpdate()) {
-          m_drivetrain.addVisionMeasurement(
-             poseEstimate.pose,
-             poseEstimate.timestampSeconds
-          );
-        }
+        // m_drivetrain.setVisionMeasurementStdDevs(VecBuilder.fill(
+        //   Constants.PoseEstimationConstants.kVisionXStdDev, // scale later
+        //   Constants.PoseEstimationConstants.kVisionYStdDev, // scale later
+        //   Constants.PoseEstimationConstants.kVisionHeadingStdDev
+        // ));
+        // LimelightHelpers.PoseEstimate poseEstimate = m_limelightSubsystem.getPoseEstimate();
+        // if (!m_limelightSubsystem.rejectUpdate()) {
+        //   m_drivetrain.addVisionMeasurement(
+        //      poseEstimate.pose,
+        //      poseEstimate.timestampSeconds
+        //   );
+        // }
       }
     );
   }
@@ -316,21 +321,40 @@ public class RobotContainer {
     // Robot should start at ~(2.0 m, 2.0 m); resets pose from vision samples, aligns to desired starting pose, shoots, and then runs the auto elevator
     AutoRoutine routine = factory.newRoutine("testMainRoutine");
     routine.active().onTrue(Commands.sequence(
-      m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
+      // m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
       // m_drivetrain.moveToPose(Constants.AutonomousConstants.kTestAutoAlignPose),
-      m_shooterSubsystem.autoShooterCommand().getFirst()
+      // m_shooterSubsystem.autoShooterCommand().getFirst()
       // , autoElevatorRoutine(factory).cmd()
     ));
+    return routine;
+  }
+
+  public AutoRoutine shooterAuto(AutoFactory factory) {
+    AutoRoutine routine = factory.newRoutine("shooterAuto");
+    AutoTrajectory driveToShootPose = ChoreoTraj.DriveToShootPose.asAutoTraj(routine);
+    // routine.active().onTrue(Commands.sequence(
+    //   Commands.runOnce(m_drivetrain.getPigeon2()::reset),
+    //   driveToShootPose.resetOdometry(),
+    //   driveToShootPose.cmd(),
+    //   // m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
+    //   Commands.deadline(m_shooterSubsystem.autoShooterCommand().getFirst().withTimeout(5), m_drivetrain.applyOptionalRequest(m_shooterSubsystem.autoShooterCommand().getSecond())
+    //   .onlyIf(() -> {
+    //         Optional<Pose2d> currentPose = m_shooterSubsystem.getCurrentPose();
+    //         if (currentPose.isEmpty()) {return false;} else {
+    //           return currentPose.get().getTranslation().getNorm() > Constants.SwerveConstants.kLLUpdateTranslationDeadband;
+    //         }
+    //       })
+    // )));
     return routine;
   }
   
 
   public void publishAutoChooser() {
-    this.m_autoHandler.publishChooser();
+    // this.m_autoHandler.publishChooser();
   }
 
   public void resetAutoRoutines() {
-    this.m_autoHandler.resetRoutines();
+    // this.m_autoHandler.resetRoutines();
   }
 
 }

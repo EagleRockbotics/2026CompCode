@@ -53,6 +53,9 @@ public final class Constants {
 
     public static final double kLLUpdateTranslationDeadband = 0.1;
     public static final double kLLUpdateRotationDeadband = 0.05;
+
+    public static final double kTurnSlewRateLimit = 0.5;
+    public static final double kDriveSlewRateLimit = 0.5;
   }
 
   public static class ChoreoConstants {
@@ -73,7 +76,7 @@ public final class Constants {
   }
 
   public static class AutonomousConstants {
-    public static final boolean kEnableAllianceFlipping = true;
+    public static final boolean kEnableAllianceFlipping = false;
     public static final double kVisionPoseSampleTimeout = 0.25; // frick you lazare for making me make this a constant
     public static final double kAutoElevatorTopServoTimeout = 0.5;
     public static final double kStartEndDistanceError = 0.01;
@@ -86,7 +89,7 @@ public final class Constants {
     public static final double kShooterAngle = Math.toRadians(67);
     public static final int kDriveMotorId = 18;
     public static double kShooterDistanceFromCenter = 0.24;
-    public static double kMinRobotDistanceFromHub = 0.85;
+    public static double kMinRobotDistanceFromHub = 0.1;
     public static final double kP = 0.0015;
     public static final double kI = 0;
     public static final double kD = 0;
@@ -105,6 +108,7 @@ public final class Constants {
     public static final double kMaxScoringRobotSpeed = 1; //guess. in meters per second
 
     public static final double kIdleDropoff = 50; //RPM rate at which shooter speed will fall off after shooting has stopped
+    public static final double kVelocityCompensationFactor = 1.2;
   }
 
   public static class IntakeConstants {
@@ -112,14 +116,14 @@ public final class Constants {
     public static final int k_RightIntakeId = 1;
     public static final int k_RightSpinId = 2;
     public static final double k_IntakePower = 1; 
-    public static final double k_Kp = 0.3;
+    public static final double k_Kp = 0.175;
     public static final double k_Kd = 0;
     public static final double k_Ks = 0;
-    public static final double k_Kg = 0.05;
+    public static final double k_Kg = 0.021;
     public static final double k_Kv = 0;
 
     public static final double k_TargetAngle = 0;
-    public static final double k_UpAngle = Math.PI/2; //in radians
+    public static final double k_UpAngle = 0.274414*2*Math.PI; //in radians
 
     public static final double k_EncoderConversionFactor = 2*Math.PI;
     public static final double k_TargetVelocity = 0;
@@ -129,15 +133,9 @@ public final class Constants {
 
   public static class ElevatorConstants {
     public static final int kElevatorMotorID = 19;
-    public static final int kLeftServoChannel = 0;
-    public static final int kRightServoChannel = 0;
-    public static final int kTopServoChannel = 0;
-    public static final double kElevatorPositionFrontOffset = 0.25;
-    public static final double kMinDistanceError = 0.01;
-    public static final double kSideServoOutPosition = 0.5;
     public static final double kDownPosition = 0;
-    public static final double kUpPosition = 774.0;
-    public static final double kMaxVelocity = 10;
+    public static final double kUpPosition = 110;
+    public static final double kMaxVelocity = 100;
     public static final double kMaxAcceleration = 20.0;
     public static final double kS = 0.0;
     public static final double kG = 0.0;

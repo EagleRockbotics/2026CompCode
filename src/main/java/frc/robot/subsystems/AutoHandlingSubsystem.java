@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.ArrayList;
 
@@ -57,8 +58,10 @@ public class AutoHandlingSubsystem extends SubsystemBase {
                 if (m.getReturnType() == Command.class) {
                     try {
                         autoFactory.bind(m.getName(), (Command) m.invoke(s, autoFactory));
-                    } catch (Exception e) {
-                    }
+                    } catch (Exception e) {}
+                    try {
+                        autoFactory.bind(m.getName(), (Command) m.invoke(s));
+                    } catch (Exception e) {}
                 }
             }
         }
