@@ -6,6 +6,7 @@ package frc.robot.subsystems;
 
 import java.util.function.Supplier;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix6.hardware.CANrange;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
@@ -14,12 +15,15 @@ import com.revrobotics.servohub.ServoHub.Warnings;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel;
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.config.SparkFlexConfig;
+import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import choreo.auto.AutoFactory;
 import edu.wpi.first.math.controller.ElevatorFeedforward;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -42,16 +46,14 @@ public class ElevatorSubsystem extends SubsystemBase {
   private final CANrange distanceSensor = new CANrange(0);
 
   private final SparkMax m_motor = new SparkMax(Constants.ElevatorConstants.kElevatorMotorID, SparkLowLevel.MotorType.kBrushless);
-  private final SparkBaseConfig m_motorConfig = new SparkFlexConfig().idleMode(IdleMode.kBrake);
+  private final SparkBaseConfig m_motorConfig = new SparkMaxConfig().idleMode(IdleMode.kCoast).voltageCompensation(11);
+  private final PIDController m_controller = new PIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD);
 
   // private final Servo m_leftServo = new Servo(Constants.ElevatorConstants.kLeftServoChannel);
   // private final Servo m_rightServo = new Servo(Constants.ElevatorConstants.kRightServoChannel);
   // private final Servo m_topServo = new Servo(Constants.ElevatorConstants.kTopServoChannel);
 
   private final RelativeEncoder m_encoder = m_motor.getEncoder();
-
-  private final TrapezoidProfile.Constraints m_constraints = new TrapezoidProfile.Constraints(Constants.ElevatorConstants.kMaxVelocity, Constants.ElevatorConstants.kMaxAcceleration);
-  private final ProfiledPIDController m_profiledController = new ProfiledPIDController(Constants.ElevatorConstants.kP, Constants.ElevatorConstants.kI, Constants.ElevatorConstants.kD, m_constraints);
   private final ElevatorFeedforward m_feedforward = new ElevatorFeedforward(Constants.ElevatorConstants.kS, Constants.ElevatorConstants.kG, Constants.ElevatorConstants.kV);
 
   private boolean sideServosReleased;
@@ -74,25 +76,27 @@ public class ElevatorSubsystem extends SubsystemBase {
   private final DoublePublisher feedforwardOutputPublisher = NetworkTableInstance.getDefault().getDoubleTopic("Elevator/FeedforwardOutput").publish();
 
   public ElevatorSubsystem() {
-    m_encoder.setPosition(0);
     m_motor.configure(m_motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
+    m_encoder.setPosition(0);
+    m_controller.setSetpoint(0);
     sideServosReleased = false;
   }
 
   public Command raiseElevatorCommand() {
     return Commands.runOnce(() -> {
-      m_profiledController.setGoal(Constants.ElevatorConstants.kUpPosition);
+      System.out.println("test");
+      m_controller.setSetpoint(Constants.ElevatorConstants.kUpPosition);
     });
   }
   public Command lowerElevatorCommand() {
     return Commands.runOnce(() -> {
-      m_profiledController.setGoal(Constants.ElevatorConstants.kDownPosition);
+      m_controller.setSetpoint(Constants.ElevatorConstants.kDownPosition);
     });
   }
   public Command setElevatorVoltageCommand() {
     return Commands.run(() -> {
-      double PIDOutput = m_profiledController.calculate(m_encoder.getPosition());
-      double feedforwardOutput = m_feedforward.calculate(m_profiledController.getSetpoint().velocity);
+      double PIDOutput = m_controller.calculate(m_encoder.getPosition());
+      double feedforwardOutput = m_feedforward.calculate(m_encoder.getVelocity());
       m_motor.setVoltage(PIDOutput + feedforwardOutput);
 
       encoderPublisher.set(m_encoder.getPosition());
@@ -122,10 +126,10 @@ public class ElevatorSubsystem extends SubsystemBase {
     //     runTopServoTrigger.onTrue(runTopServoCommand());
     //   }));
     // });
-    return Commands.runOnce(() -> {
-      raiseElevatorTrigger.whileTrue(Commands.sequence(raiseElevatorCommand(), setElevatorVoltageCommand()));
-      lowerElevatorTrigger.whileTrue(Commands.sequence(lowerElevatorCommand(), setElevatorVoltageCommand()));
-    });
+    return Commands.parallel(setElevatorVoltageCommand(), Commands.runOnce(() -> {
+          raiseElevatorTrigger.onTrue(raiseElevatorCommand());
+          lowerElevatorTrigger.onTrue(lowerElevatorCommand());
+    }));
   }
 
   // public Command teleopAlignWithLadder(CommandSwerveDrivetrain drivetrain) {

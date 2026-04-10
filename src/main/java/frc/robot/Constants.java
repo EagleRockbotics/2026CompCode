@@ -134,13 +134,11 @@ public final class Constants {
   public static class ElevatorConstants {
     public static final int kElevatorMotorID = 19;
     public static final double kDownPosition = 0;
-    public static final double kUpPosition = 110;
-    public static final double kMaxVelocity = 100;
-    public static final double kMaxAcceleration = 20.0;
+    public static final double kUpPosition = 15;
     public static final double kS = 0.0;
     public static final double kG = 0.0;
     public static final double kV = 0.0;
-    public static final double kP = 0.2;
+    public static final double kP = 1.5;
     public static final double kI = 0.0;
     public static final double kD = 0.0;
   }

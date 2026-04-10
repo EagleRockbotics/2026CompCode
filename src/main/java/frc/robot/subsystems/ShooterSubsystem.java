@@ -57,7 +57,7 @@ public class ShooterSubsystem extends SubsystemBase {
   private final CANdleSubsystem m_CANdle;
 
   // SHOOTER MODE CONFIGURATION
-  private final boolean forceLimelight = true;
+  private final boolean forceLimelight = false;
   private final boolean useRobotVelocityCompensation = true; // TODO: set during testing & stuff
   private final boolean useShooterOffsetCompensation = true; // if true, shooter is aimed at hub; if false, robot is aimed at hub
   private final boolean useZippyZoomMath = false; // takes priority over useRobotVelocityCompensation (they're mutually exclusive)

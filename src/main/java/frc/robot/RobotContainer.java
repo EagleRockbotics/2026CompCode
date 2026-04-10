@@ -48,6 +48,7 @@ import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -83,14 +84,14 @@ public class RobotContainer {
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
   private final CommandXboxController driveStick = new CommandXboxController(
       Constants.OperatorConstants.kDriverControllerPort);
-  // private final CommandXboxController helperStick = new CommandXboxController(
-  //     Constants.OperatorConstants.kHelperControllerPort);
+  private final CommandXboxController helperStick = new CommandXboxController(
+      Constants.OperatorConstants.kHelperControllerPort);
   private final CommandSwerveDrivetrain m_drivetrain = TunerConstants.createDrivetrain();
-  // private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
-  // private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain, m_drivetrain.getPigeon2());
-  // private final CANdleSubsystem m_CANdleSubsystem = new CANdleSubsystem();
-  // private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem, m_CANdleSubsystem);
-  // private final Pair<Command, Supplier<Optional<SwerveRequest>>> m_shooterPair = m_shooterSubsystem.shooterCommand();
+  private final AutoHandlingSubsystem m_autoHandler = new AutoHandlingSubsystem(m_drivetrain);
+  private final LimelightSubsystem m_limelightSubsystem = new LimelightSubsystem(m_drivetrain, m_drivetrain.getPigeon2());
+  private final CANdleSubsystem m_CANdleSubsystem = new CANdleSubsystem();
+  private final ShooterSubsystem m_shooterSubsystem = new ShooterSubsystem(m_drivetrain, m_limelightSubsystem, m_CANdleSubsystem);
+  private final Pair<Command, Supplier<Optional<SwerveRequest>>> m_shooterPair = m_shooterSubsystem.shooterCommand();
   private final ElevatorSubsystem m_elevatorSubsystem = new ElevatorSubsystem();
   // private final IntakeSubsystem m_intakeSubsytem = new IntakeSubsystem();
 
@@ -169,10 +170,10 @@ public class RobotContainer {
 
     m_drivetrain.registerTelemetry(logger::telemeterize);
 
-    // m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
-    // m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
-    // m_shooterSubsystem.xAxis = () -> -joystick.getLeftY();
-    // m_shooterSubsystem.yAxis = () -> -joystick.getLeftX();
+    m_shooterSubsystem.autoAimTeleopTrigger = joystick.rightTrigger().and(RobotModeTriggers.teleop());
+    m_shooterSubsystem.manualAimTeleopTrigger = joystick.leftTrigger();
+    m_shooterSubsystem.xAxis = () -> -joystick.getLeftY();
+    m_shooterSubsystem.yAxis = () -> -joystick.getLeftX();
 
     joystick.x().and(RobotModeTriggers.teleop()).onTrue(Commands.runOnce(() -> {
       m_drivetrain.resetPose(new Pose2d(0, 0, Rotation2d.kZero));
@@ -194,8 +195,8 @@ public class RobotContainer {
     // m_elevatorSubsystem.backRightButtonAxis = () -> {return helperStick.getRightTriggerAxis();};
     // m_elevatorSubsystem.backLeftButtonTrigger = helperStick.leftTrigger();
     // m_elevatorSubsystem.backRightButtonTrigger = helperStick.rightTrigger();
-    // m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
-    // m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
+    m_elevatorSubsystem.lowerElevatorTrigger = helperStick.povDown();
+    m_elevatorSubsystem.raiseElevatorTrigger = helperStick.povUp();
 
     // m_intakeSubsytem.runIntakeTrigger = driveStick.rightBumper();
     // m_intakeSubsytem.reverseIntakeTrigger = driveStick.leftBumper();
@@ -216,19 +217,19 @@ public class RobotContainer {
 
   public Command getTeleopCommand() {
     return Commands.parallel(
-        m_drivetrain.applyRequest(this::getDriveRequest)
-        // ,m_shooterPair.getFirst(), 
+        m_drivetrain.applyRequest(this::getDriveRequest),
+        m_shooterPair.getFirst(), 
         // m_intakeSubsytem.runCommand(),
-        // m_elevatorSubsystem.elevatorCommand(),
+        m_elevatorSubsystem.elevatorCommand()
         // m_limelightSubsystem.resetPoseCommand()
     );
   }
 
   private SwerveRequest getDriveRequest() {
-    // if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() || (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() && m_shooterSubsystem.manualAimTeleopTrigger.getAsBoolean())) {
-    //   return m_shooterPair.getSecond().get().orElse(drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
-    //   .withVelocityY(-joystick.getLeftX() * MaxSpeed).withRotationalRate(0));
-    // }
+    if (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() || (m_shooterSubsystem.autoAimTeleopTrigger.getAsBoolean() && m_shooterSubsystem.manualAimTeleopTrigger.getAsBoolean())) {
+      return m_shooterPair.getSecond().get().orElse(drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
+      .withVelocityY(-joystick.getLeftX() * MaxSpeed).withRotationalRate(0));
+    }
     return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed)
       .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
       .withRotationalRate(-joystick.getRightX() * MaxAngularRate); // Drive counterclockwise with negative X (left)
@@ -236,9 +237,10 @@ public class RobotContainer {
 
   
 
-  // public Command getTestCommand() {
-  //   return Commands.parallel( m_intakeSubsytem.publishAngleCommand(), m_elevatorSubsystem.elevatorCommand());
-  // }
+  public Command getTestCommand() {
+    return Commands.none();
+    // return m_elevatorSubsystem.elevatorCommand();
+  }
 
   public Command getAutoCommand() {
     // m_drivetrain.resetThetaController();
@@ -332,29 +334,31 @@ public class RobotContainer {
   public AutoRoutine shooterAuto(AutoFactory factory) {
     AutoRoutine routine = factory.newRoutine("shooterAuto");
     AutoTrajectory driveToShootPose = ChoreoTraj.DriveToShootPose.asAutoTraj(routine);
-    // routine.active().onTrue(Commands.sequence(
-    //   Commands.runOnce(m_drivetrain.getPigeon2()::reset),
-    //   driveToShootPose.resetOdometry(),
-    //   driveToShootPose.cmd(),
-    //   // m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
-    //   Commands.deadline(m_shooterSubsystem.autoShooterCommand().getFirst().withTimeout(5), m_drivetrain.applyOptionalRequest(m_shooterSubsystem.autoShooterCommand().getSecond())
-    //   .onlyIf(() -> {
-    //         Optional<Pose2d> currentPose = m_shooterSubsystem.getCurrentPose();
-    //         if (currentPose.isEmpty()) {return false;} else {
-    //           return currentPose.get().getTranslation().getNorm() > Constants.SwerveConstants.kLLUpdateTranslationDeadband;
-    //         }
-    //       })
-    // )));
+    routine.active().onTrue(Commands.sequence(
+      Commands.runOnce(m_drivetrain.getPigeon2()::reset),
+      driveToShootPose.resetOdometry(),
+      driveToShootPose.cmd(),
+      Commands.runOnce(() -> {
+        new Pose2d(new Translation2d(2, 4), new Rotation2d(0));
+      }),
+      // m_limelightSubsystem.resetOdometryFromVisionPoseSamples(m_drivetrain),
+      Commands.deadline(m_shooterSubsystem.autoShooterCommand().getFirst().withTimeout(5), m_drivetrain.applyOptionalRequest(m_shooterSubsystem.autoShooterCommand().getSecond())
+      .onlyIf(() -> {
+            Optional<Pose2d> currentPose = m_shooterSubsystem.getCurrentPose();
+            if (currentPose.isEmpty()) {return false;} else {
+              return currentPose.get().getTranslation().getNorm() > Constants.SwerveConstants.kLLUpdateTranslationDeadband;
+            }
+          })
+    )));
     return routine;
   }
-  
 
   public void publishAutoChooser() {
-    // this.m_autoHandler.publishChooser();
+    this.m_autoHandler.publishChooser();
   }
 
   public void resetAutoRoutines() {
-    // this.m_autoHandler.resetRoutines();
+    this.m_autoHandler.resetRoutines();
   }
 
 }
